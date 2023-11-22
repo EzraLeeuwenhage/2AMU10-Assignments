@@ -57,7 +57,8 @@ class SudokuAI(competitive_sudoku.sudokuai.SudokuAI):
                     possible_val.remove(val)
             # add the move to the possible moves list
             for value in possible_val:
-                possible_moves.append(Move(a[0], a[1], value))
+                if TabooMove(a[0], a[1], value) not in game_state.taboo_moves:
+                    possible_moves.append(Move(a[0], a[1], value))
 
         #for a in possible_moves:    
         #    print(a)
