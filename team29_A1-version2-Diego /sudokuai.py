@@ -8,6 +8,8 @@ from competitive_sudoku.sudoku import GameState, Move, SudokuBoard, TabooMove
 import competitive_sudoku.sudokuai
 import copy #Diego, i added this import idk if allowed
 #Diego vesrion, updated 27 november 3:00
+
+#to do is write down all object types in the code, what is xyz
 class SudokuAI(competitive_sudoku.sudokuai.SudokuAI):
     """
     Sudoku AI that computes a move for a given sudoku configuration.
@@ -16,8 +18,8 @@ class SudokuAI(competitive_sudoku.sudokuai.SudokuAI):
     def __init__(self):
         super().__init__()
 
-        
-    def evaluation(self, gamestate):
+ 
+    def evaluation(self, evo_score, gamestate):
         '''return numerical evaluation of state, a state is a suduko board state
         board is a board state,
         
@@ -33,9 +35,8 @@ class SudokuAI(competitive_sudoku.sudokuai.SudokuAI):
         rewards = {0:0, 1:1, 2:4, 3:7} #the points according assigment, adding 0.5 to avoid stuff
         
         #keep track of current score's?
-        
         counter_reward = 0
-        N = gamestate.board.N
+        N = gamestate[0].board.N
         
         # reward counter for 1 empty row value
         #read left to right, so first change column names(j)
@@ -47,7 +48,7 @@ class SudokuAI(competitive_sudoku.sudokuai.SudokuAI):
         
         for j in range(N):
             for i in range(N):
-                value = gamestate.board.get(i,j)
+                value = gamestate[0].board.get(i,j)
                 if value == 0:
                     empty += 1
             if empty == 1:
@@ -59,7 +60,7 @@ class SudokuAI(competitive_sudoku.sudokuai.SudokuAI):
         # reward counter for 1 empty column value
         for i in range(N):
             for j in range(N):
-                value = gamestate.board.get(i,j)
+                value = gamestate[0].board.get(i,j)
                 if value == 0:
                     empty2 += 1
             if empty2 == 1:
@@ -72,19 +73,20 @@ class SudokuAI(competitive_sudoku.sudokuai.SudokuAI):
          
         #score_metric= gamestate.scores[0] - gamestate.scores[1] #to do is save this somewhere
         evalutation = rewards[counter_reward] #+ score_metric
+
         
-        return [evalutation, gamestate] #where evalution should be a score/value
+        return (evalutation, gamestate) #where evalution should be a score/value
+        
     
-    
-    def getChildren(self, game_state):
+    def getChildren(self, evo_score, game_state):
         '''return list of states that follow from state, written by Diego'''
-        N = game_state.board.N
-        m = game_state.board.region_height()
-        n = game_state.board.region_width()
+        N = game_state[0].board.N
+        m = game_state[0].board.region_height()
+        n = game_state[0].board.region_width()
 
         # defines the empty spots on the board
         def empty(i, j):
-            return game_state.board.get(i, j) == SudokuBoard.empty
+            return game_state[0].board.get(i, j) == SudokuBoard.empty
         # defines all coordinates in a tuple list that are empty spots on the board
         all_moves = [[i, j] for i in range(N) for j in range(N) if empty(i, j)]
         #move = random.choice(all_moves)
@@ -104,65 +106,78 @@ class SudokuAI(competitive_sudoku.sudokuai.SudokuAI):
                     ]
             # retrieve values of the coordinates from move_check and remove the value from the possible value list
             for mov in move_check:
-                val = game_state.board.get(mov[0], mov[1])
+                val = game_state[0].board.get(mov[0], mov[1])
                 if val in possible_val:
                     possible_val.remove(val)
             # add the move to the possible moves list
             for value in possible_val:
-                if TabooMove(a[0], a[1], value) not in game_state.taboo_moves:
+                if TabooMove(a[0], a[1], value) not in game_state[0].taboo_moves:
                     possible_moves.append(Move(a[0], a[1], value))
         
         states = []
+        
         for move in possible_moves:
-            game_state_board_copy = copy.deepcopy(game_state)
-            # update the board state
+            game_state_board_copy = copy.deepcopy(game_state[0]) #copy gamestate
+            #append move to moves
+            lst_moves = game_state[1]
+            lst_moves.append(move) #append move to list of moves
+            #do move on sudoko board
             game_state_board_copy.board.put(move.i, move.j, move.value)
             #add the updated game_state_to_list
-            states.append(game_state_board_copy)
+            states.append([game_state_board_copy, lst_moves]) #store the move 
+            #print(' the move  is ', move)
+            #print(' the possible moves are', possible_moves)
         
         
-        return states
+        return (evo_score, states) #numeric, list containing game states and list of  moves
     
-    def minimax(self, state, depth, isMaximisingPlayer):
-        '''recursively evaluate nodes in tree, returns the best evaluation value'''
-        #result = [0,state] #this might be a mistake putting result to initial state
-
-        if depth == 0: #or state.isFinished: , the state is finished part comes later
-            return self.evaluation(state) #
+    def minimax(self, state, depth, isMaximisingPlayer, evo_score=0):
+        '''recursively evaluate nodes in tree, 
         
-        childeren = self.getChildren(state)
+        returns the best evaluation value, and board state'''
+        #result = [0,state] #this might be a mistake putting result to initial state
+        #print('the current depth is:', depth, ' the current score is:', evo_score)
+        if depth == 0: #or state.isFinished: , the state is finished part comes later
+            return self.evaluation(evo_score, state) #return (evalution score, list coitinging game_states and mvoes)
+        
+        evo_score, childeren = self.getChildren(evo_score, state) #state = [[states],[moves]] 
+        
         if isMaximisingPlayer:
+            evo_score = -999999999 # -inf
             value = -999999999 # -inf
-            for child in childeren:
-                result = self.minimax(child, depth-1, False)
-                value = max(value, result[0]) # value is the evaluation function value
-            return [value, result[1]] 
+            for child in childeren:  
+                
+                evo_score, state = self.minimax(child, depth-1, False, evo_score)
+                value = max(value, evo_score) # value is the evaluation function value
+        
+            return (value, state) #evaluation score, state, move_history_game_state
         else:
+            evo_score = 999999999 # + inf 
             value = 999999999 # + inf 
             for child in childeren:
-                result = self.minimax(child, depth-1, True)
-                value = min(value, result[0])
-            return [value, result[1]]
+                evo_score, state = self.minimax(child, depth-1, True, evo_score)
+                value = min(value, evo_score)
+            return (value, state)
 
     
-    def find_move(self, state, minmax_and_state, depth):
-        'Diego: takes the minmax value and turns it into a move propropoal for the board'
-        
-        #idea1 = track all tree paths
-        N = state.board.N
-        count = 0 
-        for i in range(N):
-            for j in range(N):
-                val1 = state.board.get(i,j)
-                val2 = minmax_and_state[1].board.get(i,j)
-                if (val1 != val2):
-                    if val2 != 0:
-                        best_move = Move(i, j, val2)
-                        return best_move
-        print('best move not found')
-            
-    
-        
+#         def find_move(self, state, minmax_and_state, depth):
+#             'Diego: takes the minmax value and turns it into a move propropoal for the board'
+
+#             #idea1 = track all tree paths
+#             N = state.board.N
+#             count = 0 
+#             for i in range(N):
+#                 for j in range(N):
+#                     val1 = state.board.get(i,j)
+#                     val2 = minmax_and_state[1].board.get(i,j)
+#                     if (val1 != val2):
+#                         if val2 != 0:
+#                             best_move = Move(i, j, val2)
+#                             return best_move
+#             print('best move not found')
+
+
+
     
     def compute_best_move(self, game_state: GameState) -> None:
         game_state_orginal = copy.deepcopy(game_state)
@@ -175,16 +190,18 @@ class SudokuAI(competitive_sudoku.sudokuai.SudokuAI):
                     max_depth += 1
         
         #iterate over depths
-        for depth in range(1,7): #depth has to be even?? idk bugged code help
-            print(depth)
+        for depth in range(1,7): #depth has to be even?? 
             if depth <= max_depth:
-#                 print('Depth is: ', depth)
+                print('Depth is: ', depth)
 #                 print('max_depth is', max_depth)
-                value_min_max = self.minimax(game_state, depth, True) #depth = 3 for now #maximisingplayer=True
-                print(value_min_max)
-                move = self.find_move(game_state_orginal, value_min_max, depth)
-                self.propose_move(move)
-
+                evo_valu_and_move_hist = self.minimax([game_state, []], depth, True) #depth = 3 for now #maximisingplayer=True
+                #print(' result this depth, value: ', evo_valu_and_move_hist[0], ' move: ', evo_valu_and_move_hist[1])
+                print(' first in list: ', evo_valu_and_move_hist[1][1][0])
+                move1 = evo_valu_and_move_hist[1][1][0]
+                #print(' last in list', evo_valu_and_move_hist[1][1][-1])
+                #print(' the proposed state is:', evo_valu_and_move_hist[1])
+                #move = self.find_move(game_state_orginal, value_min_max, depth)
+                self.propose_move(move1)
         
 
         
