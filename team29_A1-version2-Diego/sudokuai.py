@@ -4,6 +4,7 @@
 
 import random
 import time
+import copy
 from competitive_sudoku.sudoku import GameState, Move, SudokuBoard, TabooMove
 import competitive_sudoku.sudokuai
 
@@ -115,7 +116,8 @@ class SudokuAI(competitive_sudoku.sudokuai.SudokuAI):
         '''Recursively evaluate nodes in the tree,
         returns the best evaluation value, and board state'''
 
-        if depth == 0: 
+        if depth == 0 or self.is_terminal_state(state): 
+            print('depth is 0 or terminal state')
             return self.evaluation(state)  # Return (evaluation score, list containing game_states and moves)
 
         children = self.getChildren(state)
@@ -133,6 +135,22 @@ class SudokuAI(competitive_sudoku.sudokuai.SudokuAI):
                 if value2.scores < value.scores:
                     value = value2
             return value
+
+    def is_terminal_state(self, state):
+        m = state.board.region_height()
+        n = state.board.region_width()
+        N = state.board.N
+
+        filled = 0
+
+        for i in range(N):
+            for j in range(N):
+                if state.board.get(i,j) != SudokuBoard.empty:
+                    filled += 1
+        if filled == m*n:
+            return True
+        else:
+            return False
 
 
     def compute_best_move(self, game_state: GameState) -> None:
