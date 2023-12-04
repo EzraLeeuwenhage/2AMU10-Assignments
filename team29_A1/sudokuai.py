@@ -32,3 +32,15 @@ class SudokuAI(competitive_sudoku.sudokuai.SudokuAI):
             time.sleep(0.2)
             self.propose_move(random.choice(all_moves))
 
+    """ 
+     The minimax function takes the gamesstate, maximum depth and a boolean value indicating to either maximize or 
+     minimize the returned value.
+     @param game_state (GameState object) is the current state of the board with related player scores and moves.
+     @param depth the maximum depth =to which the minimax algorithm should evaluate game states
+     @param maximize a boolean value indicating whether to maximize the returned value or whether to minimize it.
+        A True value means maximizing.
+
+    @return the value of the evaluated gamestate and the correct move to eventually reach that gamestate
+       """
+    def minimax(game_state: GameState, depth: int, maximize: bool):
+        return 
