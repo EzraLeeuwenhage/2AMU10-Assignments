@@ -31,13 +31,19 @@ class SudokuAI(competitive_sudoku.sudokuai.SudokuAI):
         self.propose_move(move)
 
         # call minimax
-        self.get_valid_moves(game_state)
 
         # print("start time: {time}".format(time=time.time()))
         evaluation, best_move = self.minimax(game_state, 2, True, 2)
         # print("start time: {time}".format(time=time.time()))
-        print(evaluation)
+        #print(evaluation)
+        if len(self.get_empty_squares(game_state.board)) < 5:
+            for child in self.get_child_states(game_state, True):
+                print("child:")
+                print(child)
+
+        
         self.propose_move(best_move)
+        print("\nminimax completed!!!\n")
 
     """
      The minimax function takes the gamesstate, maximum depth and a boolean value indicating to either maximize or 
@@ -51,7 +57,7 @@ class SudokuAI(competitive_sudoku.sudokuai.SudokuAI):
        """
     def minimax(self, game_state: GameState, depth: int, is_maximizing_player: bool, max_depth: int):
         # set a termination guard
-        if depth == 0 and not self.is_terminal_state(game_state.board):
+        if depth == 0 or self.is_terminal_state(game_state.board):
             return evaluate(game_state), game_state.moves[-max_depth]
         
         children_states = self.get_child_states(game_state, is_maximizing_player)
@@ -82,7 +88,9 @@ class SudokuAI(competitive_sudoku.sudokuai.SudokuAI):
         @param board the state of the sudoku board
         @return True if the board is completely filled, else False
         """
-        return SudokuBoard.empty not in board.squares
+        if not np.isin(0, board.squares):
+            print("\nyo what the hellllllllllllllllllllllllllllllllllllll\n")
+        return not np.isin(0, board.squares)
     
     def get_child_states(self, game_state: GameState, is_maximizing_player: bool):
         children_states = []
@@ -91,7 +99,7 @@ class SudokuAI(competitive_sudoku.sudokuai.SudokuAI):
             game_state_copy = copy.deepcopy(game_state)
 
             game_state_copy.moves.append(move)
-            update_scores(game_state, move, is_maximizing_player) # update scores
+            update_scores(game_state_copy, move, is_maximizing_player) # update scores
             game_state_copy.board.put(move.i, move.j, move.value) # fill in the move
             children_states.append(game_state_copy)
         return children_states
