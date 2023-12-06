@@ -25,8 +25,8 @@ class SudokuAI(competitive_sudoku.sudokuai.SudokuAI):
         @param game_state the state of the current game
        """
         N = game_state.board.N
-        still_possible = np.arange(1, N+1)
-        print(self.is_in_block(game_state.board, still_possible, 0, 1))
+
+        self.get_valid_moves(game_state)
 
         evaluation, move = self.minimax(game_state, self.max_depth, True)
         self.propose_move(move)
@@ -43,11 +43,11 @@ class SudokuAI(competitive_sudoku.sudokuai.SudokuAI):
        """
     def minimax(self, game_state: GameState, depth: int, is_maximizing: bool):
         # set a termination guard
-        if depth == 0 or not self.get_empty_squares(game_state.board) or not self.get_child_states(game_state):
+        if depth == 0 and not self.is_terminal_state(game_state.board):
             return evaluate(game_state), #what move do i pass along here?
         
         children_states = self.get_child_states(game_state)
-
+        print()
         if is_maximizing:
             evaluation = -99999999
             move = None
@@ -75,6 +75,14 @@ class SudokuAI(competitive_sudoku.sudokuai.SudokuAI):
     """ 
      Produces all possible child states from the input game state by playing the available moves
        """
+    
+    def is_terminal_state(self, board: SudokuBoard):
+        """
+        Evaluates whether the input board is a terminal state, i.e. whether the board is completely filled.
+        @param board the state of the sudoku board
+        @return True if the board is completely filled, else False
+        """
+        return SudokuBoard.empty not in board.squares
     def get_child_states(self, game_state: GameState):
 
         # make a list of gamestates from the valid moves that can be played from the input state using getvalidmoves()
@@ -148,40 +156,35 @@ class SudokuAI(competitive_sudoku.sudokuai.SudokuAI):
         for height_box in range(m): # loop over the height of the region box (m)
             region_indices.append(np.arange(height_box*N + row_region*m*N+n*col_region, height_box*N + row_region*m*N+n*col_region + n, 1).tolist()) # use np.arange to get the width of the region box (n)
         region_indices = np.array(region_indices).flatten()
-        print(region_indices) 
         region_values = np.array(board.squares)[region_indices]
-        print(region_values)
         return np.setdiff1d(still_possible, region_values)
 
-    """ 
-     Checks if the value played in a move is neither illegal, nor taboo
-     
-     @param game_state the state of the current game
-     @param move the move which needs to be checked for validity
-     @return true if the input move is a valid move, i.e. if the move is not illegal and not a taboo move, else false
-       """
-    def is_valid_move(self, move: Move, game_state: GameState, value: int):
-        valid = False
-        still_possible = game_state.board.N
+
+    def get_valid_moves(self, game_state: GameState):
+        """ 
+        Check valid moves for the current game state
+        @param game_state the state of the current game
+        @return list of all valid moves not in Tabboomoves
+        """
+
+        N = game_state.board.N
+        still_possible = np.arange(1, N+1)
         empty_squares = self.get_empty_squares(game_state.board)
 
-        for i, j in empty_squares:
-            a = self.is_in_row(game_state.board, )
-
-        # make sure to remove the 0 value from the possible moves for a square
-        # check if the move is illegal
-        # check if the move is taboo
-
-        return valid
-
-    """ 
-     Gets all valid moves from a game state
-       """
-    def get_valid_moves(self, game_state: GameState):
-
-        # for loop for all empty squares checking the playable moves using isvalidmove() and getemptysquares()
-
-        return
+        possible_moves = list()
+        for x, y in empty_squares:
+            possible_row = self.is_in_row(game_state.board, still_possible, x)
+            possible_col = self.is_in_column(game_state.board, possible_row, y)
+            possible_block = self.is_in_block(game_state.board, possible_col, x, y)
+            # enter in the line below this a piece of code that removes 0 from the numpy array
+            values_possible = possible_block[possible_block != 0]
+            for value in values_possible:
+                if TabooMove(x, y, value) not in game_state.taboo_moves:
+                    possible_moves.append(Move(x, y, value))
+        for move in possible_moves:
+            print(move.i, move.j, move.value)
+        return possible_moves
+        
 
     def possible(self, game_state: GameState):
         N = game_state.board.N
