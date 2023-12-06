@@ -167,7 +167,6 @@ class SudokuAI(competitive_sudoku.sudokuai.SudokuAI):
             region_indices.append(np.arange(height_box*N + row_region*m*N+n*col_region, height_box*N + row_region*m*N+n*col_region + n, 1).tolist()) # use np.arange to get the width of the region box (n)
         region_indices = np.array(region_indices).flatten()
         region_values = np.array(board.squares)[region_indices]
-        print(region_values)
         return np.setdiff1d(still_possible, region_values)
 
 
@@ -183,16 +182,14 @@ class SudokuAI(competitive_sudoku.sudokuai.SudokuAI):
 
         possible_moves = []
         for row, col in empty_squares:
-            print(row, col)
             still_possible = np.arange(1, N+1)
             possible_row = self.is_in_row(game_state.board, still_possible, row)
             possible_col = self.is_in_column(game_state.board, possible_row, col)
             possible_block = self.is_in_block(game_state.board, possible_col, row, col)
             values_possible = possible_block[possible_block != 0]
-            print(row, col, values_possible)
             for value in values_possible:
                 if TabooMove(row, col, value) not in game_state.taboo_moves:
                     possible_moves.append(Move(row, col, value))
-        for move in possible_moves:
-            print(move.i, move.j, move.value)
+        #for move in possible_moves:
+        #    print(move.i, move.j, move.value)
         return possible_moves
