@@ -36,7 +36,6 @@ class SudokuAI(competitive_sudoku.sudokuai.SudokuAI):
         self.get_valid_moves(game_state)
 
         evaluation, move = self.minimax(game_state, self.max_depth, True)
-        print("\n", evaluation)
 
     """
      The minimax function takes the gamesstate, maximum depth and a boolean value indicating to either maximize or 
@@ -59,7 +58,7 @@ class SudokuAI(competitive_sudoku.sudokuai.SudokuAI):
             move = None
             for child_state in children_states:
                 new_evaluation = self.minimax(child_state, depth - 1, False)
-                print(new_evaluation, evaluation)
+                
                 if new_evaluation > evaluation:
                     evaluation = new_evaluation
                     # move = child_state.moves[-1] # I'm not sure if this move passing is actually correct
@@ -69,7 +68,7 @@ class SudokuAI(competitive_sudoku.sudokuai.SudokuAI):
             move = None
             for child_state in children_states:
                 new_evaluation = self.minimax(child_state, depth - 1, True)
-                print(new_evaluation, evaluation)
+                
                 if new_evaluation > evaluation:
                     evaluation = new_evaluation
                     # move = child_state.moves[-1]
