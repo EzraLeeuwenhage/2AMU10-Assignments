@@ -1,2 +1,2 @@
 bin\solve_sudoku.exe
-*__pycache__/
+**/__pycache__/
