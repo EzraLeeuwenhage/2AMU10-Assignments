@@ -162,7 +162,8 @@ class SudokuAI(competitive_sudoku.sudokuai.SudokuAI):
        """
     def is_valid_move(self, move: Move, game_state: GameState, value: int):
         valid = False
-        still_possible = game_state.board.N
+        still_possible = np.arange(game_state.board.N
+
         empty_squares = self.get_empty_squares(game_state.board)
 
         for i, j in empty_squares:
