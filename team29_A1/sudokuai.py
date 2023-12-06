@@ -7,6 +7,7 @@ import time
 from .evaluate_functions import *
 from competitive_sudoku.sudoku import GameState, Move, SudokuBoard, TabooMove
 import competitive_sudoku.sudokuai
+import copy
 
 
 class SudokuAI(competitive_sudoku.sudokuai.SudokuAI):
@@ -26,10 +27,16 @@ class SudokuAI(competitive_sudoku.sudokuai.SudokuAI):
        """
         N = game_state.board.N
 
+        # first propose some valid move to play
+        all_moves = self.get_valid_moves(game_state)
+        move = random.choice(all_moves)
+        self.propose_move(move)
+
+        # call minimax
         self.get_valid_moves(game_state)
 
         evaluation, move = self.minimax(game_state, self.max_depth, True)
-        self.propose_move(move)
+        print("\n", evaluation)
 
     """
      The minimax function takes the gamesstate, maximum depth and a boolean value indicating to either maximize or 
@@ -41,14 +48,14 @@ class SudokuAI(competitive_sudoku.sudokuai.SudokuAI):
 
     @return the value of the evaluated gamestate and the correct move to eventually reach that gamestate
        """
-    def minimax(self, game_state: GameState, depth: int, is_maximizing: bool):
+    def minimax(self, game_state: GameState, depth: int, is_maximizing_player: bool):
         # set a termination guard
         if depth == 0 and not self.is_terminal_state(game_state.board):
-            return evaluate(game_state), #what move do i pass along here?
+            return evaluate(game_state)
         
-        children_states = self.get_child_states(game_state)
+        children_states = self.get_child_states(game_state, is_maximizing_player)
         print()
-        if is_maximizing:
+        if is_maximizing_player:
             evaluation = -99999999
             move = None
             for child_state in children_states:
@@ -56,11 +63,11 @@ class SudokuAI(competitive_sudoku.sudokuai.SudokuAI):
 
                 if new_evaluation > evaluation:
                     evaluation = new_evaluation
-                    move = child_state.moves[-1] # I'm not sure if this move passing is actually correct
+                    # move = child_state.moves[-1] # I'm not sure if this move passing is actually correct
             
-            return evaluation, move
+            return evaluation
         
-        if not is_maximizing:
+        if not is_maximizing_player:
             evaluation = 99999999
             move = None
             for child_state in children_states:
@@ -68,9 +75,9 @@ class SudokuAI(competitive_sudoku.sudokuai.SudokuAI):
 
                 if new_evaluation > evaluation:
                     evaluation = new_evaluation
-                    move = child_state.moves[-1]
+                    # move = child_state.moves[-1]
 
-            return evaluation, move
+            return evaluation
         
     """ 
      Produces all possible child states from the input game state by playing the available moves
@@ -83,15 +90,18 @@ class SudokuAI(competitive_sudoku.sudokuai.SudokuAI):
         @return True if the board is completely filled, else False
         """
         return SudokuBoard.empty not in board.squares
-    def get_child_states(self, game_state: GameState):
+    
+    def get_child_states(self, game_state: GameState, is_maximizing_player: bool):
+        children_states = []
 
-        # make a list of gamestates from the valid moves that can be played from the input state using getvalidmoves()
-        # uses update_scores() to update all the new game state scores after a move was played 
+        for move in self.get_valid_moves(game_state):
+            game_state_copy = copy.deepcopy(game_state)
 
-        # update the board
-        # update the move list of game state
-
-        return
+            game_state_copy.moves.append(move)
+            update_scores(game_state, move, is_maximizing_player) # update scores
+            game_state_copy.board.put(move.i, move.j, move.value) # fill in the move
+            children_states.append(game_state_copy)
+        return children_states
 
     """ 
      Get_empty_squares is a function that takes in the current sudoku board and retrieves the list of squares that are not yet filled.
@@ -159,30 +169,6 @@ class SudokuAI(competitive_sudoku.sudokuai.SudokuAI):
         region_values = np.array(board.squares)[region_indices]
         return np.setdiff1d(still_possible, region_values)
 
-<<<<<<< HEAD
-    """ 
-     Checks if the value played in a move is neither illegal, nor taboo
-     
-     @param game_state the state of the current game
-     @param move the move which needs to be checked for validity
-     @return true if the input move is a valid move, i.e. if the move is not illegal and not a taboo move, else false
-       """
-    def is_valid_move(self, move: Move, game_state: GameState, value: int):
-        valid = False
-        still_possible = np.arange(game_state.board.N
-
-        empty_squares = self.get_empty_squares(game_state.board)
-
-        for i, j in empty_squares:
-            a = self.is_in_row(game_state.board, )
-
-        # make sure to remove the 0 value from the possible moves for a square
-        # check if the move is illegal
-        # check if the move is taboo
-
-        return valid
-=======
->>>>>>> 13c2171706bd5793d621db3b8abed68da7991bf7
 
     def get_valid_moves(self, game_state: GameState):
         """ 
@@ -190,7 +176,6 @@ class SudokuAI(competitive_sudoku.sudokuai.SudokuAI):
         @param game_state the state of the current game
         @return list of all valid moves not in Tabboomoves
         """
-
         N = game_state.board.N
         still_possible = np.arange(1, N+1)
         empty_squares = self.get_empty_squares(game_state.board)
@@ -208,41 +193,3 @@ class SudokuAI(competitive_sudoku.sudokuai.SudokuAI):
         for move in possible_moves:
             print(move.i, move.j, move.value)
         return possible_moves
-        
-
-    def possible(self, game_state: GameState):
-        N = game_state.board.N
-        m = game_state.board.region_height()
-        n = game_state.board.region_width()
-
-        # defines all coordinates in a tuple list that are empty spots on the board
-        all_moves = [[i, j]
-                     for i in range(N) for j in range(N) if self.empty(i, j)]
-        # move = random.choice(all_moves)
-        possible_moves = []
-        # in this loop we are going to look at all the possible moves and check if they are valid
-        for a in all_moves:
-            # this is a list of 1 to N
-            possible_val = [i for i in range(1, N+1)]
-
-            # this list contains all vertical, horizontal and region coordinates that we need to check
-            move_check = [
-                [(a[0] + inc_i) % N, a[1]] for inc_i in range(1, N)] + [
-                [a[0], (a[1] + inc_j) % N] for inc_j in range(1, N)] + [
-                [((a[0] + inc_m) % m) + (a[0] // m)*m, ((a[1] + inc_n) % n)
-                 + (a[1] // n)*n]
-                    for inc_m in range(1, m) for inc_n in range(1, n)
-            ]
-            # retrieve values of the coordinates from move_check and remove the value from the possible value list
-            for mov in move_check:
-                val = game_state.board.get(mov[0], mov[1])
-                if val in possible_val:
-                    possible_val.remove(val)
-            # add the move to the possible moves list
-            for value in possible_val:
-                if TabooMove(a[0], a[1], value) not in game_state.taboo_moves:
-                    possible_moves.append(Move(a[0], a[1], value))
-
-        # for a in possible_moves:
-        #    print(a)
-        return (possible_moves)
