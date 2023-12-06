@@ -4,7 +4,7 @@
 
 import random
 import time
-from .evaluate_functions import evaluate
+from .evaluate_functions import *
 from competitive_sudoku.sudoku import GameState, Move, SudokuBoard, TabooMove
 import competitive_sudoku.sudokuai
 
@@ -13,19 +13,22 @@ class SudokuAI(competitive_sudoku.sudokuai.SudokuAI):
     """
     Sudoku AI that computes a move for a given sudoku configuration.
     """
+    max_depth = 3
+
     def _init_(self):
         super()._init_()
 
-    """ 
-     Proposes the best playable move found using minimax within the timespan given by the game settings
-
-     @param game_state the state of the current game
-       """
     def compute_best_move(self, game_state: GameState) -> None:
-        depth = 3
+        """ 
+        Proposes the best playable move found using minimax within the timespan given by the game settings
 
-        evaluation, move = self.minimax(game_state, depth, True)
-        # print(evaluation)
+        @param game_state the state of the current game
+       """
+        N = game_state.board.N
+        still_possible = np.arange(1, N+1)
+        print(self.is_in_block(game_state.board, still_possible, 0, 1))
+
+        evaluation, move = self.minimax(game_state, self.max_depth, True)
         self.propose_move(move)
 
     """
@@ -77,6 +80,9 @@ class SudokuAI(competitive_sudoku.sudokuai.SudokuAI):
         # make a list of gamestates from the valid moves that can be played from the input state using getvalidmoves()
         # uses update_scores() to update all the new game state scores after a move was played 
 
+        # update the board
+        # update the move list of game state
+
         return
 
     """ 
@@ -99,12 +105,16 @@ class SudokuAI(competitive_sudoku.sudokuai.SudokuAI):
     """ 
      Checks if the value in the given square is already present somewhere else in the square's row
 
-     @param square the x and y coordinate and the value of the square to check for
+     @param row the y coordinate and the value of the square to check for
      @param board the state of the sudoku board
      @return true if the value of square is present somewhere else in the row, else false
        """
-    def is_in_row():
-        return
+    def is_in_row(self, board: SudokuBoard, still_possible: np.array, row: int):
+        N = board.N
+
+        row_values = np.array(board.squares[N*row: N*(row+1)])
+
+        return np.setdiff1d(still_possible, row_values)
 
     """ 
      Checks if the value in the given square is already present somewhere else in the square's column
@@ -113,8 +123,12 @@ class SudokuAI(competitive_sudoku.sudokuai.SudokuAI):
      @param board the state of the sudoku board
      @return true if the value of square is present somewhere else in the column, else false
        """
-    def is_in_column():
-        return
+    def is_in_column(self, board: SudokuBoard, still_possible: np.array, col: int):
+        N = board.N
+
+        col_values = np.array(board.squares)[np.arange(col, N**2, N)]
+
+        return np.setdiff1d(still_possible, col_values)
 
     """ 
      Checks if the value in the given square is already present somewhere else in the square's block
@@ -122,9 +136,22 @@ class SudokuAI(competitive_sudoku.sudokuai.SudokuAI):
      @param square the x and y coordinate and the value of the square to check for
      @param board the state of the sudoku board
      @return true if the value of square is present somewhere else in the block, else false
-       """
-    def is_in_block():
-        return
+       """  
+    def is_in_block(self, board: SudokuBoard, still_possible: np.array, row: int, col: int):
+        N = board.N
+        m = board.m
+        n = board.n
+        row_region = row // N
+        col_region = col // N
+
+        region_indices = [] # make list to append the indexes of the region box
+        for height_box in range(m): # loop over the height of the region box (m)
+            region_indices.append(np.arange(height_box*N + row_region*m*N+n*col_region, height_box*N + row_region*m*N+n*col_region + n, 1).tolist()) # use np.arange to get the width of the region box (n)
+        region_indices = np.array(region_indices).flatten()
+        print(region_indices) 
+        region_values = np.array(board.squares)[region_indices]
+        print(region_values)
+        return np.setdiff1d(still_possible, region_values)
 
     """ 
      Checks if the value played in a move is neither illegal, nor taboo
@@ -135,7 +162,13 @@ class SudokuAI(competitive_sudoku.sudokuai.SudokuAI):
        """
     def is_valid_move(self, move: Move, game_state: GameState, value: int):
         valid = False
+        still_possible = game_state.board.N
+        empty_squares = self.get_empty_squares(game_state.board)
 
+        for i, j in empty_squares:
+            a = self.is_in_row(game_state.board, )
+
+        # make sure to remove the 0 value from the possible moves for a square
         # check if the move is illegal
         # check if the move is taboo
 
@@ -150,39 +183,39 @@ class SudokuAI(competitive_sudoku.sudokuai.SudokuAI):
 
         return
 
-    # def possible(self, game_state: GameState):
-    #     N = game_state.board.N
-    #     m = game_state.board.region_height()
-    #     n = game_state.board.region_width()
+    def possible(self, game_state: GameState):
+        N = game_state.board.N
+        m = game_state.board.region_height()
+        n = game_state.board.region_width()
 
-    #     # defines all coordinates in a tuple list that are empty spots on the board
-    #     all_moves = [[i, j]
-    #                  for i in range(N) for j in range(N) if self.empty(i, j)]
-    #     # move = random.choice(all_moves)
-    #     possible_moves = []
-    #     # in this loop we are going to look at all the possible moves and check if they are valid
-    #     for a in all_moves:
-    #         # this is a list of 1 to N
-    #         possible_val = [i for i in range(1, N+1)]
+        # defines all coordinates in a tuple list that are empty spots on the board
+        all_moves = [[i, j]
+                     for i in range(N) for j in range(N) if self.empty(i, j)]
+        # move = random.choice(all_moves)
+        possible_moves = []
+        # in this loop we are going to look at all the possible moves and check if they are valid
+        for a in all_moves:
+            # this is a list of 1 to N
+            possible_val = [i for i in range(1, N+1)]
 
-    #         # this list contains all vertical, horizontal and region coordinates that we need to check
-    #         move_check = [
-    #             [(a[0] + inc_i) % N, a[1]] for inc_i in range(1, N)] + [
-    #             [a[0], (a[1] + inc_j) % N] for inc_j in range(1, N)] + [
-    #             [((a[0] + inc_m) % m) + (a[0] // m)*m, ((a[1] + inc_n) % n)
-    #              + (a[1] // n)*n]
-    #                 for inc_m in range(1, m) for inc_n in range(1, n)
-    #         ]
-    #         # retrieve values of the coordinates from move_check and remove the value from the possible value list
-    #         for mov in move_check:
-    #             val = game_state.board.get(mov[0], mov[1])
-    #             if val in possible_val:
-    #                 possible_val.remove(val)
-    #         # add the move to the possible moves list
-    #         for value in possible_val:
-    #             if TabooMove(a[0], a[1], value) not in game_state.taboo_moves:
-    #                 possible_moves.append(Move(a[0], a[1], value))
+            # this list contains all vertical, horizontal and region coordinates that we need to check
+            move_check = [
+                [(a[0] + inc_i) % N, a[1]] for inc_i in range(1, N)] + [
+                [a[0], (a[1] + inc_j) % N] for inc_j in range(1, N)] + [
+                [((a[0] + inc_m) % m) + (a[0] // m)*m, ((a[1] + inc_n) % n)
+                 + (a[1] // n)*n]
+                    for inc_m in range(1, m) for inc_n in range(1, n)
+            ]
+            # retrieve values of the coordinates from move_check and remove the value from the possible value list
+            for mov in move_check:
+                val = game_state.board.get(mov[0], mov[1])
+                if val in possible_val:
+                    possible_val.remove(val)
+            # add the move to the possible moves list
+            for value in possible_val:
+                if TabooMove(a[0], a[1], value) not in game_state.taboo_moves:
+                    possible_moves.append(Move(a[0], a[1], value))
 
-    #     # for a in possible_moves:
-    #     #    print(a)
-    #     return (possible_moves)
+        # for a in possible_moves:
+        #    print(a)
+        return (possible_moves)

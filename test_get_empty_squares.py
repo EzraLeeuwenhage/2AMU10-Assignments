@@ -20,6 +20,12 @@ class Test(unittest.TestCase):
         filled_squares = self.sudokuai.get_empty_squares(filled_board)
         self.assertEqual(filled_squares, [(i, j) for i in range(filled_board.board_height()) 
                                           for j in range(filled_board.board_width()) if (i, j) not in [(0, 0), (1, 1), (2, 2), (3, 3)]])
+        
+    def test_isinrow(self):
+        # Test for empty board
+        testboard = SudokuBoard(n=3, m=2)
+        empty_squares = self.sudokuai.get_empty_squares(empty_board)
+        self.assertEqual(empty_squares, [(i, j) for i in range(empty_board.board_height()) for j in range(empty_board.board_width())])
 
 if __name__ == '__main__':
     unittest.main()
