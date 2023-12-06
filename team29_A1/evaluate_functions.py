@@ -22,7 +22,7 @@ def update_scores(game_state, move, isMaximisingPlayer):
     else:
         game_state.scores[1] = game_state.scores[1] + rewards[completed]
 
-def evaluate(game_state):
+def evaluate(game_state: GameState):
         """ 
         Evaluate the given game state by taking score difference of two players
         @param gamestate: GameState object """
