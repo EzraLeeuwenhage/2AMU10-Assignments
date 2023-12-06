@@ -159,14 +159,15 @@ class SudokuAI(competitive_sudoku.sudokuai.SudokuAI):
         N = board.N
         m = board.m
         n = board.n
-        row_region = row // N
-        col_region = col // N
+        row_region = row // m
+        col_region = col // n
 
         region_indices = [] # make list to append the indexes of the region box
         for height_box in range(m): # loop over the height of the region box (m)
             region_indices.append(np.arange(height_box*N + row_region*m*N+n*col_region, height_box*N + row_region*m*N+n*col_region + n, 1).tolist()) # use np.arange to get the width of the region box (n)
         region_indices = np.array(region_indices).flatten()
         region_values = np.array(board.squares)[region_indices]
+        print(region_values)
         return np.setdiff1d(still_possible, region_values)
 
 
@@ -177,19 +178,21 @@ class SudokuAI(competitive_sudoku.sudokuai.SudokuAI):
         @return list of all valid moves not in Tabboomoves
         """
         N = game_state.board.N
-        still_possible = np.arange(1, N+1)
+        
         empty_squares = self.get_empty_squares(game_state.board)
 
-        possible_moves = list()
-        for x, y in empty_squares:
-            possible_row = self.is_in_row(game_state.board, still_possible, x)
-            possible_col = self.is_in_column(game_state.board, possible_row, y)
-            possible_block = self.is_in_block(game_state.board, possible_col, x, y)
-            # enter in the line below this a piece of code that removes 0 from the numpy array
+        possible_moves = []
+        for row, col in empty_squares:
+            print(row, col)
+            still_possible = np.arange(1, N+1)
+            possible_row = self.is_in_row(game_state.board, still_possible, row)
+            possible_col = self.is_in_column(game_state.board, possible_row, col)
+            possible_block = self.is_in_block(game_state.board, possible_col, row, col)
             values_possible = possible_block[possible_block != 0]
+            print(row, col, values_possible)
             for value in values_possible:
-                if TabooMove(x, y, value) not in game_state.taboo_moves:
-                    possible_moves.append(Move(x, y, value))
+                if TabooMove(row, col, value) not in game_state.taboo_moves:
+                    possible_moves.append(Move(row, col, value))
         for move in possible_moves:
             print(move.i, move.j, move.value)
         return possible_moves
