@@ -14,8 +14,6 @@ class SudokuAI(competitive_sudoku.sudokuai.SudokuAI):
     """
     Sudoku AI that computes a move for a given sudoku configuration.
     """
-    max_depth = 3
-
     def _init_(self):
         super()._init_()
 
@@ -35,7 +33,11 @@ class SudokuAI(competitive_sudoku.sudokuai.SudokuAI):
         # call minimax
         self.get_valid_moves(game_state)
 
-        evaluation, move = self.minimax(game_state, self.max_depth, True)
+        # print("start time: {time}".format(time=time.time()))
+        evaluation, best_move = self.minimax(game_state, 2, True, 2)
+        # print("start time: {time}".format(time=time.time()))
+        print(evaluation)
+        self.propose_move(best_move)
 
     """
      The minimax function takes the gamesstate, maximum depth and a boolean value indicating to either maximize or 
@@ -47,32 +49,28 @@ class SudokuAI(competitive_sudoku.sudokuai.SudokuAI):
 
     @return the value of the evaluated gamestate and the correct move to eventually reach that gamestate
        """
-    def minimax(self, game_state: GameState, depth: int, is_maximizing_player: bool):
+    def minimax(self, game_state: GameState, depth: int, is_maximizing_player: bool, max_depth: int):
         # set a termination guard
         if depth == 0 and not self.is_terminal_state(game_state.board):
-            return evaluate(game_state)
+            return evaluate(game_state), game_state.moves[-max_depth]
         
         children_states = self.get_child_states(game_state, is_maximizing_player)
         if is_maximizing_player:
             evaluation = -99999999
-            move = None
             for child_state in children_states:
-                new_evaluation = self.minimax(child_state, depth - 1, False)
+                new_evaluation, move = self.minimax(child_state, depth - 1, False, max_depth)
                 
                 if new_evaluation > evaluation:
                     evaluation = new_evaluation
-                    # move = child_state.moves[-1] # I'm not sure if this move passing is actually correct
-            return evaluation
+            return evaluation, move
         else:
             evaluation = 99999999
-            move = None
             for child_state in children_states:
-                new_evaluation = self.minimax(child_state, depth - 1, True)
+                new_evaluation, move = self.minimax(child_state, depth - 1, True, max_depth)
                 
-                if new_evaluation > evaluation:
+                if new_evaluation < evaluation:
                     evaluation = new_evaluation
-                    # move = child_state.moves[-1]
-            return evaluation
+            return evaluation, move
         
     """ 
      Produces all possible child states from the input game state by playing the available moves
