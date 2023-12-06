@@ -54,29 +54,25 @@ class SudokuAI(competitive_sudoku.sudokuai.SudokuAI):
             return evaluate(game_state)
         
         children_states = self.get_child_states(game_state, is_maximizing_player)
-        print()
         if is_maximizing_player:
             evaluation = -99999999
             move = None
             for child_state in children_states:
                 new_evaluation = self.minimax(child_state, depth - 1, False)
-
+                print(new_evaluation, evaluation)
                 if new_evaluation > evaluation:
                     evaluation = new_evaluation
                     # move = child_state.moves[-1] # I'm not sure if this move passing is actually correct
-            
             return evaluation
-        
-        if not is_maximizing_player:
+        else:
             evaluation = 99999999
             move = None
             for child_state in children_states:
-                new_evaluation = evaluation, self.minimax(child_state, depth - 1, True)
-
+                new_evaluation = self.minimax(child_state, depth - 1, True)
+                print(new_evaluation, evaluation)
                 if new_evaluation > evaluation:
                     evaluation = new_evaluation
                     # move = child_state.moves[-1]
-
             return evaluation
         
     """ 
