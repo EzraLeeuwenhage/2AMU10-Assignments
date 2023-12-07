@@ -2,31 +2,35 @@ from competitive_sudoku.sudoku import GameState, Move, SudokuBoard, TabooMove
 import competitive_sudoku.sudokuai
 import numpy as np
 
-def update_scores(game_state, move, isMaximisingPlayer):
-    """ Evaluate the given game state and return a reward.
-     @param gamestate: GameState object 
-     @param move: Move object
-     @param isMaximisingPlayer: Boolean value that indicates if the player is the maximising player or not in the minimax algorithm"""
-    
-    N = game_state.board.N
-    m = game_state.board.region_height()
-    n = game_state.board.region_width()
-    
-    rewards = {0:0, 1:1, 2:3, 3:7}
-    x = move.i
-    y = move.j
-    completed = check_row(game_state, x) + check_col(game_state, y) + check_box(game_state, x, y) # each of these function returns True (==1) if the move completes the field
+def update_scores(game_state, move, isMaximisingPlayer, our_agent):
+        """ Evaluate the given game state and return a reward.
+        @param gamestate: GameState object 
+        @param move: Move object
+        @param isMaximisingPlayer: Boolean value that indicates if the player is the maximising player or not in the minimax algorithm"""
+        
+        N = game_state.board.N
+        m = game_state.board.region_height()
+        n = game_state.board.region_width()
+        
+        rewards = {0:0, 1:1, 2:3, 3:7}
+        x = move.i
+        y = move.j
+        completed = check_row(game_state, x) + check_col(game_state, y) + check_box(game_state, x, y) # each of these function returns True (==1) if the move completes the field
 
-    if isMaximisingPlayer: # add score to the player that made the move
-        game_state.scores[0] = game_state.scores[0] + rewards[completed]
-    else:
-        game_state.scores[1] = game_state.scores[1] + rewards[completed]
+        if isMaximisingPlayer: # add score to the player that made the move
+                game_state.scores[our_agent] = game_state.scores[our_agent] + rewards[completed]
+        else:
+                game_state.scores[not our_agent] = game_state.scores[not our_agent] + rewards[completed]
+        
 
-def evaluate(game_state: GameState):
+def evaluate(game_state: GameState, isMaximisingPlayer, our_agent):
         """ 
         Evaluate the given game state by taking score difference of two players
         @param gamestate: GameState object """
-        return game_state.scores[0] - game_state.scores[1]
+        if isMaximisingPlayer:
+                return game_state.scores[our_agent] - game_state.scores[not our_agent]
+        else:
+                return game_state.scores[not our_agent] - game_state.scores[our_agent]
     
 def check_row(game_state, row: int):
         """
