@@ -24,7 +24,6 @@ class SudokuAI(competitive_sudoku.sudokuai.SudokuAI):
         @param game_state the state of the current game
        """
         game_state.our_agent = game_state.current_player() - 1 
-        print(game_state.our_agent)
         N = game_state.board.N
 
         # first propose some valid move to play
@@ -35,18 +34,28 @@ class SudokuAI(competitive_sudoku.sudokuai.SudokuAI):
         # call minimax
 
         # print("start time: {time}".format(time=time.time()))
-        depth = 3
-        evaluation, best_move = self.minimax(game_state, depth, True, depth)
+        depth = 4
+        max_depth = depth
+        
+
+        children_states = self.get_child_states(game_state, True)
+        evaluation = -99999999
+        for child_state in children_states:
+            new_evaluation = self.minimax(child_state, depth - 1, False)
+            
+            if new_evaluation > evaluation:
+                evaluation = new_evaluation
+                best_move = child_state.moves[-1]
+                self.propose_move(best_move)
         # print("start time: {time}".format(time=time.time()))
         #print(evaluation)
         #if len(self.get_empty_squares(game_state.board)) < 5:
         #    for child in self.get_child_states(game_state, True):
         #        print("child:")
         #        print(child)
-
         
-        self.propose_move(best_move)
         print("\nminimax completed!!!\n")
+    
 
     """
      The minimax function takes the gamesstate, maximum depth and a boolean value indicating to either maximize or 
@@ -58,30 +67,30 @@ class SudokuAI(competitive_sudoku.sudokuai.SudokuAI):
 
     @return the value of the evaluated gamestate and the correct move to eventually reach that gamestate
        """
-    def minimax(self, game_state: GameState, depth: int, is_maximizing_player: bool, max_depth: int):
+    def minimax(self, game_state: GameState, depth: int, is_maximizing_player: bool):
         # set a termination guard
         #print('inside minimax; is player maximising:' + str(is_maximizing_player))
         if depth == 0 or self.is_terminal_state(game_state.board):
-            print(evaluate(game_state, is_maximizing_player))
-            return evaluate(game_state, is_maximizing_player), game_state.moves[-max_depth]
+            #print(evaluate(game_state, is_maximizing_player))
+            return evaluate(game_state, is_maximizing_player)
         
         children_states = self.get_child_states(game_state, is_maximizing_player)
         if is_maximizing_player:
             evaluation = -99999999
             for child_state in children_states:
-                new_evaluation, move = self.minimax(child_state, depth - 1, False, max_depth)
+                new_evaluation = self.minimax(child_state, depth - 1, False)
                 
                 if new_evaluation > evaluation:
                     evaluation = new_evaluation
-            return evaluation, move
+            return evaluation
         else:
             evaluation = 99999999
             for child_state in children_states:
-                new_evaluation, move = self.minimax(child_state, depth - 1, True, max_depth)
+                new_evaluation = self.minimax(child_state, depth - 1, True)
                 
                 if new_evaluation < evaluation:
                     evaluation = new_evaluation
-            return evaluation, move
+            return evaluation
         
     """ 
      Produces all possible child states from the input game state by playing the available moves

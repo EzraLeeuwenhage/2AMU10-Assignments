@@ -2,7 +2,7 @@ from competitive_sudoku.sudoku import GameState, Move, SudokuBoard, TabooMove
 import competitive_sudoku.sudokuai
 import numpy as np
 
-def update_scores(game_state, move, isMaximisingPlayer, our_agent):
+def update_scores(game_state, move, isMaximisingPlayer):
         """ Evaluate the given game state and return a reward.
         @param gamestate: GameState object 
         @param move: Move object
@@ -11,6 +11,7 @@ def update_scores(game_state, move, isMaximisingPlayer, our_agent):
         N = game_state.board.N
         m = game_state.board.region_height()
         n = game_state.board.region_width()
+        our_agent = game_state.our_agent
         
         rewards = {0:0, 1:1, 2:3, 3:7}
         x = move.i
@@ -22,11 +23,14 @@ def update_scores(game_state, move, isMaximisingPlayer, our_agent):
         else:
                 game_state.scores[not our_agent] = game_state.scores[not our_agent] + rewards[completed]
         
+        
 
-def evaluate(game_state: GameState, isMaximisingPlayer, our_agent):
+def evaluate(game_state: GameState, isMaximisingPlayer):
         """ 
         Evaluate the given game state by taking score difference of two players
         @param gamestate: GameState object """
+
+        our_agent = game_state.our_agent
         if isMaximisingPlayer:
                 return game_state.scores[our_agent] - game_state.scores[not our_agent]
         else:
