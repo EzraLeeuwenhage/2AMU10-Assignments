@@ -27,36 +27,35 @@ class SudokuAI(competitive_sudoku.sudokuai.SudokuAI):
         N = game_state.board.N
 
         # first propose some valid move to play
-        all_moves = self.get_valid_moves(game_state)
-        move = random.choice(all_moves)
+        #all_moves = self.get_valid_moves(game_state)
+        #move = random.choice(all_moves)
         #game_state.our_agent = 
-        self.propose_move(move)
+        #self.propose_move(move)
         # call minimax
 
         # print("start time: {time}".format(time=time.time()))
-        depth = 4
-        max_depth = depth
         
-
+        
+        #for depth in range(1,len(self.get_empty_squares(game_state.board))):
         children_states = self.get_child_states(game_state, True)
-        evaluation = -99999999
-        for child_state in children_states:
-            new_evaluation = self.minimax(child_state, depth - 1, False)
-            
-            if new_evaluation > evaluation:
-                evaluation = new_evaluation
-                best_move = child_state.moves[-1]
-                self.propose_move(best_move)
-        # print("start time: {time}".format(time=time.time()))
-        #print(evaluation)
-        #if len(self.get_empty_squares(game_state.board)) < 5:
-        #    for child in self.get_child_states(game_state, True):
-        #        print("child:")
-        #        print(child)
         
-        print("\nminimax completed!!!\n")
-    
+        
+        if len(children_states) > 1:
+            for depth in range(1, len(self.get_empty_squares(game_state.board)) + 1):
+                evaluation = -99999999
+                print("trying for depth: " + str(depth) + "eval: ", end=" ")
+                for child_state in children_states:
+                    new_evaluation = self.minimax(child_state, depth - 1, False)
+                    print(new_evaluation, end=" ")
+                    if new_evaluation > evaluation:
+                        evaluation = new_evaluation
+                        
+                        best_move = child_state.moves[-1]
+                        self.propose_move(best_move)
 
+                print("which turns out to be the best move for depth: " + str(depth) + ", eval:" + str(evaluation) + ", move: " + str(best_move.i) + str(best_move.j) + str(best_move.value))
+        else:
+            self.propose_move(children_states[0].moves[-1])
     """
      The minimax function takes the gamesstate, maximum depth and a boolean value indicating to either maximize or 
      minimize the returned value.
@@ -70,9 +69,9 @@ class SudokuAI(competitive_sudoku.sudokuai.SudokuAI):
     def minimax(self, game_state: GameState, depth: int, is_maximizing_player: bool):
         # set a termination guard
         #print('inside minimax; is player maximising:' + str(is_maximizing_player))
-        if depth == 0 or self.is_terminal_state(game_state.board):
+        if depth <= 0 or self.is_terminal_state(game_state.board):
             #print(evaluate(game_state, is_maximizing_player))
-            return evaluate(game_state, is_maximizing_player)
+            return evaluate(game_state)
         
         children_states = self.get_child_states(game_state, is_maximizing_player)
         if is_maximizing_player:
@@ -102,8 +101,7 @@ class SudokuAI(competitive_sudoku.sudokuai.SudokuAI):
         @param board the state of the sudoku board
         @return True if the board is completely filled, else False
         """
-        if not np.isin(0, board.squares):
-            print("\nyo what the hellllllllllllllllllllllllllllllllllllll\n")
+        
         return not np.isin(0, board.squares)
     
     def get_child_states(self, game_state: GameState, is_maximizing_player: bool):
@@ -125,7 +123,6 @@ class SudokuAI(competitive_sudoku.sudokuai.SudokuAI):
      @return the set of empty squares on the board
      """
     def get_empty_squares(self, board: SudokuBoard):
-        empty_squares = []
         
         zero_indexes = np.where(np.array(board.squares)==0)[0]
         return list(zero_indexes)

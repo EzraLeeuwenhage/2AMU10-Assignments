@@ -25,16 +25,13 @@ def update_scores(game_state, move, isMaximisingPlayer):
         
         
 
-def evaluate(game_state: GameState, isMaximisingPlayer):
+def evaluate(game_state: GameState):
         """ 
         Evaluate the given game state by taking score difference of two players
         @param gamestate: GameState object """
 
         our_agent = game_state.our_agent
-        if isMaximisingPlayer:
-                return game_state.scores[our_agent] - game_state.scores[not our_agent]
-        else:
-                return game_state.scores[not our_agent] - game_state.scores[our_agent]
+        return game_state.scores[our_agent] - game_state.scores[not our_agent]
     
 def check_row(game_state, row: int):
         """
