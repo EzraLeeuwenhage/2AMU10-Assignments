@@ -38,24 +38,39 @@ class SudokuAI(competitive_sudoku.sudokuai.SudokuAI):
         
         #for depth in range(1,len(self.get_empty_squares(game_state.board))):
         children_states = self.get_child_states(game_state, True)
-        
+        # i = 0
+        # for child in children_states:
+        #     print("Child {}:\n {}".format(i, child))
+            # print("Player 1 score: {}".format(child.scores[0]))
+            # print("Player 2 score: {}".format(child.scores[1]))
+            # print(evaluate(child))
+            # i += 1
         
         if len(children_states) > 1:
             for depth in range(1, len(self.get_empty_squares(game_state.board)) + 1):
                 evaluation = -99999999
-                print("trying for depth: " + str(depth) + "eval: ", end=" ")
-                for child_state in children_states:
-                    new_evaluation = self.minimax(child_state, depth - 1, False)
-                    print(new_evaluation, end=" ")
-                    if new_evaluation > evaluation:
-                        evaluation = new_evaluation
-                        
-                        best_move = child_state.moves[-1]
-                        self.propose_move(best_move)
+                print("\n------------depth: {}------------\n".format(depth))
+                # print("trying for depth: " + str(depth) + "eval: ", end=" ")
+                i = 0
+                for child in children_states:
+                    print("\n Evaluation of child {}:".format(i))
+                    new_evaluation = self.minimax(child, depth - 1, False)
+                    
+                    print("Current highest evaluation: {}".format(evaluation))
 
-                print("which turns out to be the best move for depth: " + str(depth) + ", eval:" + str(evaluation) + ", move: " + str(best_move.i) + str(best_move.j) + str(best_move.value))
+                    if new_evaluation is not None:
+                        print("Evaluation new subtree {}: {}".format(i, new_evaluation))
+                    
+                        if new_evaluation > evaluation:
+                            evaluation = new_evaluation
+                            best_move = child.moves[-1]
+                            print("best move update:", best_move)
+                    i += 1
+                
+                self.propose_move(best_move)
         else:
             self.propose_move(children_states[0].moves[-1])
+    
     """
      The minimax function takes the gamesstate, maximum depth and a boolean value indicating to either maximize or 
      minimize the returned value.
@@ -67,28 +82,42 @@ class SudokuAI(competitive_sudoku.sudokuai.SudokuAI):
     @return the value of the evaluated gamestate and the correct move to eventually reach that gamestate
        """
     def minimax(self, game_state: GameState, depth: int, is_maximizing_player: bool):
+        # print("minimax call, depth {}, ismaximizing: {}\n".format(depth, is_maximizing_player))
         # set a termination guard
         #print('inside minimax; is player maximising:' + str(is_maximizing_player))
-        if depth <= 0 or self.is_terminal_state(game_state.board):
-            #print(evaluate(game_state, is_maximizing_player))
+        if depth == 0 or self.is_terminal_state(game_state.board):
+            # for move in game_state.moves:    
+            #     print(move)
+            # print(f"{game_state.scores[0]} - {game_state.scores[1]}")
+            # print(evaluate(game_state))
             return evaluate(game_state)
         
         children_states = self.get_child_states(game_state, is_maximizing_player)
+        
+        # check if there are childstates, i.e. check if no taboo move was played
+        # if a taboo move was played, do not evaluate subtree
+        if not children_states:
+            return None
+
         if is_maximizing_player:
             evaluation = -99999999
             for child_state in children_states:
+                # print("Child: \n{}".format(child_state))
                 new_evaluation = self.minimax(child_state, depth - 1, False)
                 
-                if new_evaluation > evaluation:
-                    evaluation = new_evaluation
+                if new_evaluation is not None:
+                    evaluation = max(evaluation, new_evaluation)
+
             return evaluation
         else:
             evaluation = 99999999
             for child_state in children_states:
+                # print("Child: \n{}".format(child_state))
                 new_evaluation = self.minimax(child_state, depth - 1, True)
                 
-                if new_evaluation < evaluation:
-                    evaluation = new_evaluation
+                if new_evaluation is not None:
+                    evaluation = min(evaluation, new_evaluation)
+
             return evaluation
         
     """ 
