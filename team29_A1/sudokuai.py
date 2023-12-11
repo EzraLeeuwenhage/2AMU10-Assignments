@@ -36,29 +36,30 @@ class SudokuAI(competitive_sudoku.sudokuai.SudokuAI):
         else:
             for depth in range(1, len(get_empty_squares(game_state.board)) + 1):
                 evaluation = -99999999
+                alpha = -99999999
+                beta = 99999999
                 print("\n------------depth: {}------------\n".format(depth))
 
                 i = 0
                 for child in children_states:
                     print("\n Evaluation of child {}:".format(i))
-                    new_evaluation = self.minimax(child, depth - 1, False)
+                    new_evaluation = self.minimax(child, depth - 1, alpha, beta, False)
 
-                    print("Current highest evaluation: {}".format(evaluation))
+                    # print("Current highest evaluation: {}".format(evaluation))
 
                     # if child did not turn out to be taboo move
                     if new_evaluation is not None:
-                        print("Evaluation new subtree {}: {}".format(
-                            i, new_evaluation))
+                        # print("Evaluation new subtree {}: {}".format(i, new_evaluation))
 
                         if new_evaluation > evaluation:
                             evaluation = new_evaluation
                             best_move = child.moves[-1]
-                            print("best move update:", best_move)
+                            # print("best move update:", best_move)
                     i += 1
 
                 self.propose_move(best_move)
 
-    def minimax(self, game_state: GameState, depth: int, is_maximizing_player: bool):
+    def minimax(self, game_state: GameState, depth: int, alpha: int, beta: int, is_maximizing_player: bool):
         """ 
         The minimax function evaluates the game state recursively using the minimax algorithm.
 
@@ -81,21 +82,29 @@ class SudokuAI(competitive_sudoku.sudokuai.SudokuAI):
         if is_maximizing_player:
             evaluation = -99999999
             for child_state in children_states:
-                new_evaluation = self.minimax(child_state, depth - 1, False)
+                new_evaluation = self.minimax(child_state, depth - 1, alpha, beta, False)
 
                 # if not an evaluation of taboo move
                 if new_evaluation is not None:
                     evaluation = max(evaluation, new_evaluation)
+                    alpha = max(alpha, new_evaluation)
+                    if beta <= alpha:
+                        # print("\nPrune maximizing\n")
+                        break
 
             return evaluation
         else:
             evaluation = 99999999
             for child_state in children_states:
-                new_evaluation = self.minimax(child_state, depth - 1, True)
+                new_evaluation = self.minimax(child_state, depth - 1, alpha, beta, True)
 
                 # if not an evaluation of taboo move
                 if new_evaluation is not None:
                     evaluation = min(evaluation, new_evaluation)
+                    beta = min(beta, new_evaluation)
+                    if beta <= alpha:
+                        # print("\nPrune minimizing\n")
+                        break
 
             return evaluation
 
