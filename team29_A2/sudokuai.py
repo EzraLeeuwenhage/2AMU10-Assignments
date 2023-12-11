@@ -26,7 +26,79 @@ class SudokuAI(competitive_sudoku.sudokuai.SudokuAI):
         # store our agent's number to keep track of scores
         game_state.our_agent = game_state.current_player() - 1
         N = game_state.board.N
+        #if len(get_empty_squares(game_state.board)) > N**2 / 3:
+        #    early_game = True
+        #else:
+        #    early_game = False
+        early_game = True
 
+        if early_game:
+            self.early_game(game_state)
+        else:
+            self.minimax_main(game_state)
+    
+    def early_game(self, game_state: GameState):
+        N = game_state.board.N
+        completion_moves = []
+        bad_moves = []
+        okay_moves = self.get_valid_moves(game_state)
+
+        empty_squares = get_empty_squares(game_state.board)
+        for empty_square in empty_squares: 
+            row = empty_square // N
+            col = empty_square % N
+            room_horizontal = check_row(game_state, row) 
+            room_vertical = check_col(game_state, col) 
+            room_block = check_box(game_state, row, col) 
+            if room_horizontal == (N - 1) or room_vertical == (N - 1) or room_block == (N - 1):
+                possible_row = values_in_row(game_state.board, np.arange(1, N+1), row)
+                possible_col = values_in_column(game_state.board, possible_row, col)
+                possible_block = values_in_block(game_state.board, possible_col, row, col)
+                value = possible_block[possible_block != 0][0]
+                
+                completion_moves.append(Move(row, col, value))
+            if room_horizontal == (N - 2) or room_vertical == (N - 2) or room_block == (N - 2):
+                possible_row = values_in_row(game_state.board, np.arange(1, N+1), row)
+                #print(possible_row)
+                possible_col = values_in_column(game_state.board, possible_row, col)
+                #print(possible_col)
+                possible_block = values_in_block(game_state.board, possible_col, row, col)
+                #print(possible_block)
+                values = possible_block[possible_block != 0]
+                #print(values)
+                for value in values:
+                    bad_moves.append(Move(row, col, value))
+        
+        for move in game_state.taboo_moves:
+            if move in okay_moves:
+                okay_moves.remove(move)
+            if move in bad_moves:
+                bad_moves.remove(move)
+
+        for move in bad_moves:
+            if move in okay_moves:
+                okay_moves.remove(move)
+        #nice_moves = set(self.get_valid_moves(game_state)) - set(bad_moves)
+        #nice_moves = np.setdiff1d(nice_moves, game_state.taboo_moves)
+        #bad_moves = np.setdiff1d(bad_moves, game_state.taboo_moves)
+        print("\ncompletion moves: ", end= " ")
+        for move in completion_moves:
+            print(move.i, move.j, move.value, end = ", ")
+        print("\nbad moves: ", end= " ")
+        for move in bad_moves:
+            print(move.i, move.j, move.value, end = ", ")
+        if len(completion_moves) > 0:
+            self.propose_move(completion_moves[0])
+            print("\nproposed a completion move\n")
+        elif len(okay_moves) > 0:
+            self.propose_move(okay_moves[0])
+            print("\nproposed an okay move\n")
+        else:
+            self.propose_move(bad_moves[0])
+            print("\nunfortunately had to propose a bad move\n")
+
+        
+    def minimax_main(self, game_state: GameState):
         children_states = self.get_child_states(game_state, True)
 
         # if only one move is playable, play the only playable move
