@@ -32,12 +32,8 @@ class SudokuAI(competitive_sudoku.sudokuai.SudokuAI):
         #else:
         #    early_game = False
 
-        early_game = True
+        self.early_game(game_state)
 
-        if early_game:
-            self.early_game(game_state)
-        else:
-            self.minimax_main(game_state)
     
     def early_game(self, game_state: GameState):
         N = game_state.board.N
@@ -81,6 +77,8 @@ class SudokuAI(competitive_sudoku.sudokuai.SudokuAI):
         for move in bad_moves:
             if move in okay_moves:
                 okay_moves.remove(move)
+            if move in completion_moves:
+                completion_moves.remove(move)
         
         # TODO: add loop to remove completion moves that are also in bad moves
         # this means we will never trade points but we will also never give away free points (early game tactic)
@@ -113,7 +111,7 @@ class SudokuAI(competitive_sudoku.sudokuai.SudokuAI):
             self.propose_move(children_states[0].moves[-1])
         # else, use minimax to evaluate each possible move
         else:
-            for depth in range(1, len(get_empty_squares(game_state.board)) + 1):
+            for depth in range(2, len(get_empty_squares(game_state.board)) + 1):
                 evaluation = -99999999
                 alpha = -99999999
                 beta = 99999999
@@ -131,6 +129,9 @@ class SudokuAI(competitive_sudoku.sudokuai.SudokuAI):
                         # print("Evaluation new subtree {}: {}".format(i, new_evaluation))
 
                         if new_evaluation > evaluation:
+                            # TODO check if new evaluation >= evaluation. For all moves that have same evaluation, we should pick the one that results in least child states
+                            # thus pass the one that fills the fullest block
+
                             evaluation = new_evaluation
                             best_move = child.moves[-1]
                             # print("best move update:", best_move)
