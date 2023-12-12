@@ -34,8 +34,10 @@ class SudokuAI(competitive_sudoku.sudokuai.SudokuAI):
             early_game = False
         """
         self.early_game(game_state)
+        print("\nearly strategy check done\n")
         self.minimax_main(game_state)
         #self.early_game(game_state)
+        print('MINIMAX TERMINAL STATE REACHED')
 
     
     def early_game(self, game_state: GameState):
@@ -94,13 +96,13 @@ class SudokuAI(competitive_sudoku.sudokuai.SudokuAI):
             print(move.i, move.j, move.value, end = ", ")
         if len(completion_moves) > 0:
             self.propose_move(completion_moves[0])
-            print("\nproposed a completion move\n")
+            #print("\nproposed a completion move\n")
         elif len(okay_moves) > 0:
             self.propose_move(okay_moves[0])
-            print("\nproposed an okay move\n")
+            #print("\nproposed an okay move\n")
         else:
             self.propose_move(bad_moves[0])
-            print("\nunfortunately had to propose a bad move\n")
+            #print("\nunfortunately had to propose a bad move\n")
 
     # TODO: change the set of moves we enter for minimax to search in the early game
     # maybe add condition that only move is proposed with evaluation higher than 1 in case there is no completion_move
@@ -118,11 +120,11 @@ class SudokuAI(competitive_sudoku.sudokuai.SudokuAI):
                 evaluation = -99999999
                 alpha = -99999999
                 beta = 99999999
-                print("\n------------depth: {}------------\n".format(depth))
+                #print("\n------------depth: {}------------\n".format(depth))
 
                 i = 0
                 for child in children_states:
-                    print("\n Evaluation of child {}:".format(i))
+                    #print("\n Evaluation of child {}:".format(i))
                     new_evaluation = self.minimax(child, depth - 1, alpha, beta, False)
 
                     # print("Current highest evaluation: {}".format(evaluation))
@@ -130,7 +132,7 @@ class SudokuAI(competitive_sudoku.sudokuai.SudokuAI):
                     # if child did not turn out to be taboo move
                     if new_evaluation is not None:
                         # print("Evaluation new subtree {}: {}".format(i, new_evaluation))
-                        print('\ntest\n')
+                        #print('\ntest\n')
                         if new_evaluation > evaluation:
                             # TODO check if new evaluation >= evaluation. For all moves that have same evaluation, we should pick the one that results in least child states
                             # thus pass the one that fills the fullest block
@@ -144,12 +146,19 @@ class SudokuAI(competitive_sudoku.sudokuai.SudokuAI):
                             # print("equally good moves:", equally_good_moves)
 
                     i += 1
-                print('\nproposed move\n')
+                
                 if len(equally_good_moves) == 1:
                     self.propose_move(equally_good_moves[0])
                 else:
+                    highest_block_filling = -1
+                    for move in equally_good_moves:
+                        if check_box(game_state, move.i, move.j) > highest_block_filling:
+                            best_move = move
                     # TODO propose the move that reduces the possible moves list the most
-                    self.propose_move(equally_good_moves[0])
+                    self.propose_move(best_move)
+                print('\n equal move possibilities minimax: ', len(equally_good_moves), ", depth=", depth, end="\n ")
+                for move in equally_good_moves:
+                    print(move.i, move.j, '->', move.value, end=", ")
 
     def minimax(self, game_state: GameState, depth: int, alpha: int, beta: int, is_maximizing_player: bool):
         """ 
