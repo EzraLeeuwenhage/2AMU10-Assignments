@@ -27,12 +27,15 @@ class SudokuAI(competitive_sudoku.sudokuai.SudokuAI):
         game_state.our_agent = game_state.current_player() - 1
         N = game_state.board.N
 
-        #if len(get_empty_squares(game_state.board)) > N**2 / 3:
-        #    early_game = True
-        #else:
-        #    early_game = False
-
+        """"
+        if len(get_empty_squares(game_state.board)) > N**2 / 3:
+            early_game = True
+        else:
+            early_game = False
+        """
         self.early_game(game_state)
+        self.minimax_main(game_state)
+        #self.early_game(game_state)
 
     
     def early_game(self, game_state: GameState):
@@ -127,17 +130,26 @@ class SudokuAI(competitive_sudoku.sudokuai.SudokuAI):
                     # if child did not turn out to be taboo move
                     if new_evaluation is not None:
                         # print("Evaluation new subtree {}: {}".format(i, new_evaluation))
-
+                        print('\ntest\n')
                         if new_evaluation > evaluation:
                             # TODO check if new evaluation >= evaluation. For all moves that have same evaluation, we should pick the one that results in least child states
                             # thus pass the one that fills the fullest block
+                            equally_good_moves = []
 
                             evaluation = new_evaluation
-                            best_move = child.moves[-1]
+                            equally_good_moves.append(child.moves[-1])
                             # print("best move update:", best_move)
-                    i += 1
+                        if new_evaluation == evaluation:
+                            equally_good_moves.append(child.moves[-1])
+                            # print("equally good moves:", equally_good_moves)
 
-                self.propose_move(best_move)
+                    i += 1
+                print('\nproposed move\n')
+                if len(equally_good_moves) == 1:
+                    self.propose_move(equally_good_moves[0])
+                else:
+                    # TODO propose the move that reduces the possible moves list the most
+                    self.propose_move(equally_good_moves[0])
 
     def minimax(self, game_state: GameState, depth: int, alpha: int, beta: int, is_maximizing_player: bool):
         """ 

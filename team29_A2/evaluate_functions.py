@@ -16,7 +16,11 @@ def update_scores(game_state, move, isMaximisingPlayer):
         rewards = {0:0, 1:1, 2:3, 3:7}
         x = move.i
         y = move.j
-        completed = check_row(game_state, x) == (N - 1) + check_col(game_state, y) == (N - 1) + check_box(game_state, x, y) == (N - 1) # each of these function returns True (==1) if the move completes the field
+        completed_horizontal = check_row(game_state, x) == (N - 1)
+        completed_vertical = check_col(game_state, y) == (N - 1)
+        completed_block = check_box(game_state, x, y) == (N - 1) # each of these function returns True (==1) if the move completes the field
+        completed = completed_horizontal + completed_vertical + completed_block # if the move completes more than one field, this is counted as one completed field
+        #print(completed_horizontal, completed_vertical, completed_block, completed)
 
         if isMaximisingPlayer: # add score to the player that made the move
                 game_state.scores[our_agent] = game_state.scores[our_agent] + rewards[completed]
