@@ -26,10 +26,12 @@ class SudokuAI(competitive_sudoku.sudokuai.SudokuAI):
         # store our agent's number to keep track of scores
         game_state.our_agent = game_state.current_player() - 1
         N = game_state.board.N
+
         #if len(get_empty_squares(game_state.board)) > N**2 / 3:
         #    early_game = True
         #else:
         #    early_game = False
+
         early_game = True
 
         if early_game:
@@ -41,6 +43,7 @@ class SudokuAI(competitive_sudoku.sudokuai.SudokuAI):
         N = game_state.board.N
         completion_moves = []
         bad_moves = []
+        # TODO: check for 100% certain non-taboo moves to play in the okay moves 
         okay_moves = self.get_valid_moves(game_state)
 
         empty_squares = get_empty_squares(game_state.board)
@@ -78,9 +81,10 @@ class SudokuAI(competitive_sudoku.sudokuai.SudokuAI):
         for move in bad_moves:
             if move in okay_moves:
                 okay_moves.remove(move)
-        #nice_moves = set(self.get_valid_moves(game_state)) - set(bad_moves)
-        #nice_moves = np.setdiff1d(nice_moves, game_state.taboo_moves)
-        #bad_moves = np.setdiff1d(bad_moves, game_state.taboo_moves)
+        
+        # TODO: add loop to remove completion moves that are also in bad moves
+        # this means we will never trade points but we will also never give away free points (early game tactic)
+
         print("\ncompletion moves: ", end= " ")
         for move in completion_moves:
             print(move.i, move.j, move.value, end = ", ")
@@ -97,7 +101,10 @@ class SudokuAI(competitive_sudoku.sudokuai.SudokuAI):
             self.propose_move(bad_moves[0])
             print("\nunfortunately had to propose a bad move\n")
 
-        
+    # TODO: change the set of moves we enter for minimax to search in the early game
+    # maybe add condition that only move is proposed with evaluation higher than 1 in case there is no completion_move
+    # TODO: add mechanism that plays differently if no winning play can be found
+    # maybe add non-obvious moves randomly, maybe limit search depth 
     def minimax_main(self, game_state: GameState):
         children_states = self.get_child_states(game_state, True)
 
