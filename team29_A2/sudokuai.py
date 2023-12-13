@@ -28,7 +28,7 @@ class SudokuAI(competitive_sudoku.sudokuai.SudokuAI):
 
         # uses early_game strategy first, then minimax if there is time left
         self.early_game(game_state)
-        #self.minimax_main(game_state)
+        self.minimax_main(game_state)
 
 
     
@@ -94,12 +94,13 @@ class SudokuAI(competitive_sudoku.sudokuai.SudokuAI):
         for move in completion_moves:
             if move in bad_moves:
                 completion_moves.remove(move)
-        """
+        
         if len(completion_moves) > 0:
             print('\ncompletion moves: ', end = ' ')
             for move in completion_moves:
                 #print(move)
                 print(move.i, move.j, move.value, end= ', ')
+        """
         if len(okay_moves) > 0:
             print('\nokay moves: ', end = ' ')
             for move in okay_moves:
@@ -119,8 +120,9 @@ class SudokuAI(competitive_sudoku.sudokuai.SudokuAI):
             print('proposed completion move')
             highest_block_filling = -1
             for move in completion_moves:
+                print('highest block filling: ', check_box(game_state, move.i, move.j))
                 if check_box(game_state, move.i, move.j) > highest_block_filling:
-                    print('highest block filling: ', check_box(game_state, move.i, move.j))
+                    
                     best_move = move
             self.propose_move(best_move)
         elif len(okay_moves) > 0:
