@@ -19,63 +19,60 @@ class SudokuAI(competitive_sudoku.sudokuai.SudokuAI):
 
     def compute_best_move(self, game_state: GameState) -> None:
         """ 
-        Proposes the best playable move found using minimax within the timespan given by the game settings.
-
+        Proposes the best playable move found using minimax within the timespan given by the game settings. Calls early_game() first and then if there is time left uses minimax_main() to find the best move.
         @param game_state: The state of the current game.
         """
         # store our agent's number to keep track of scores
         game_state.our_agent = game_state.current_player() - 1
         N = game_state.board.N
 
-        """"
-        if len(get_empty_squares(game_state.board)) > N**2 / 3:
-            early_game = True
-        else:
-            early_game = False
-        """
-        
+        # uses early_game strategy first, then minimax if there is time left
         self.early_game(game_state)
-        print("\nearly strategy check done\n")
         self.minimax_main(game_state)
-        #self.early_game(game_state)
-        print('MINIMAX TERMINAL STATE REACHED')
+
 
     
     def early_game(self, game_state: GameState):
+        """ 
+        Proposes the best playable move found using early game strategy. Early game strategy tries to play moves that complete regions, and avoids moves that gives the opponent a chance to complete a region. 
+        Also selects for moves that are neither the one that reduces the possible moves list the most nor the one that fills the fullest block.
+        @param game_state: The state of the current game.
+           """
         N = game_state.board.N
         m = game_state.board.region_height()
         n = game_state.board.region_width()
+
+        # completion moves are the moves that complete a region, bad_moves are moves that give the opponent a chance to complete a region, okay_moves are the rest
         completion_moves = []
         bad_moves = []
         okay_moves = []
-        # TODO: check for 100% certain non-taboo moves to play in the okay moves 
         
-        #print('-------------begin test fase-------------')
-        # test the filling of row, col and block
-        # determine what moves to play and what moves to avoid
-        
+        # create lists of the values in each row, column and block, so we can check which values are still possible in an efficient way
         row_filling = []
         len_row_filling = []
         col_filling = []
         len_col_filling = []
         block_filling = []
         len_block_filling = []
+
+        # for each reagion, check which values are still possible and also include length of the list of possible values
         for row in range(N):
-            row_filling.append(values_in_row2(game_state, row))
+            row_filling.append(values_in_row(game_state, row))
             row_filling_nonzero = row_filling[row][row_filling[row] != 0]
             len_row_filling.append(len(row_filling_nonzero))
         for col in range(N):    
-            col_filling.append(values_in_column2(game_state, col))
+            col_filling.append(values_in_column(game_state, col))
             col_filling_nonzero = col_filling[col][col_filling[col] != 0]
             len_col_filling.append(len(col_filling_nonzero))
         
         for row_block in range(n):
             for col_block in range(m):
-                block_filling.append(values_in_block2(game_state, row_block*m, col_block*n))
+                block_filling.append(values_in_block(game_state, row_block*m, col_block*n))
         for block_index in range(N):
             block_filling_nonzero = block_filling[block_index][block_filling[block_index] != 0]
             len_block_filling.append(len(block_filling_nonzero))
         
+        # for each empty square check the possible values and if the corresponding move is not taboo, add it to the corresponding list (completion, bad or okay)
         empty_squares = get_empty_squares(game_state.board)
         for empty_square in empty_squares:
             row = empty_square // N
@@ -93,10 +90,11 @@ class SudokuAI(competitive_sudoku.sudokuai.SudokuAI):
                 for value in possible_values:
                     if TabooMove(row, col, value) not in game_state.taboo_moves:
                         okay_moves.append(Move(row, col, value))
+        
 
-        # from the moves that are okay, check which ones are in the fullest block
+        # play a completion_move if it exists, else play an okay_move, else play a bad_move.
+        # if there are multiple moves in the list, pick the one that fills the fullest block to reduce the followup moveset the most
 
-        #print('-------------end of test fase------------')
         if len(completion_moves) > 0:
             self.propose_move(completion_moves[0])
             highest_block_filling = -1
@@ -113,69 +111,13 @@ class SudokuAI(competitive_sudoku.sudokuai.SudokuAI):
             self.propose_move(best_move)
         else: 
             self.propose_move(bad_moves[0])
-        """
-        empty_squares = get_empty_squares(game_state.board)
-        for empty_square in empty_squares: 
-            row = empty_square // N
-            col = empty_square % N
-            room_horizontal = check_row(game_state, row) 
-            room_vertical = check_col(game_state, col) 
-            room_block = check_box(game_state, row, col) 
-            if room_horizontal == (N - 1) or room_vertical == (N - 1) or room_block == (N - 1):
-                possible_row = values_in_row(game_state.board, np.arange(1, N+1), row)
-                possible_col = values_in_column(game_state.board, possible_row, col)
-                possible_block = values_in_block(game_state.board, possible_col, row, col)
-                value = possible_block[possible_block != 0][0]
-                
-                completion_moves.append(Move(row, col, value))
-            if room_horizontal == (N - 2) or room_vertical == (N - 2) or room_block == (N - 2):
-                possible_row = values_in_row(game_state.board, np.arange(1, N+1), row)
-                #print(possible_row)
-                possible_col = values_in_column(game_state.board, possible_row, col)
-                #print(possible_col)
-                possible_block = values_in_block(game_state.board, possible_col, row, col)
-                #print(possible_block)
-                values = possible_block[possible_block != 0]
-                #print(values)
-                for value in values:
-                    bad_moves.append(Move(row, col, value))
-        
-        for move in game_state.taboo_moves:
-            if move in okay_moves:
-                okay_moves.remove(move)
-            if move in bad_moves:
-                bad_moves.remove(move)
-
-        for move in bad_moves:
-            if move in okay_moves:
-                okay_moves.remove(move)
-            if move in completion_moves:
-                completion_moves.remove(move)
-        
-        # TODO: add loop to remove completion moves that are also in bad moves
-        # this means we will never trade points but we will also never give away free points (early game tactic)
-
-        print("\ncompletion moves: ", end= " ")
-        for move in completion_moves:
-            print(move.i, move.j, move.value, end = ", ")
-        print("\nbad moves: ", end= " ")
-        for move in bad_moves:
-            print(move.i, move.j, move.value, end = ", ")
-        if len(completion_moves) > 0:
-            self.propose_move(completion_moves[0])
-            #print("\nproposed a completion move\n")
-        elif len(okay_moves) > 0:
-            self.propose_move(okay_moves[0])
-            #print("\nproposed an okay move\n")
-        else:
-            self.propose_move(bad_moves[0])
-            #print("\nunfortunately had to propose a bad move\n")
-        """
-    # TODO: change the set of moves we enter for minimax to search in the early game
-    # maybe add condition that only move is proposed with evaluation higher than 1 in case there is no completion_move
-    # TODO: add mechanism that plays differently if no winning play can be found
-    # maybe add non-obvious moves randomly, maybe limit search depth 
+       
     def minimax_main(self, game_state: GameState):
+        """ 
+        Propose the best playable move with minimax agorithm. minimax_main() calls minimax() to evaluate each possible move and then proposes the move that reduces the possible moves list the most.
+          @param game_state: The state of the current game.
+          """
+        # first get the child states of the current game state
         children_states = self.get_child_states(game_state, True)
 
         # if only one move is playable, play the only playable move
@@ -183,70 +125,67 @@ class SudokuAI(competitive_sudoku.sudokuai.SudokuAI):
             self.propose_move(children_states[0].moves[-1])
         # else, use minimax to evaluate each possible move
         else:
+            # iterate over all possible depths, starting from 1
             for depth in range(1, len(get_empty_squares(game_state.board)) + 1):
                 evaluation = -99999999
                 alpha = -99999999
                 beta = 99999999
-                #print("\n------------depth: {}------------\n".format(depth))
 
-                i = 0
+                # for each possibility, evaluate the game state using minimax recursion
                 for child in children_states:
-                    #print("\n Evaluation of child {}:".format(i))
+                    
                     new_evaluation = self.minimax(child, depth - 1, alpha, beta, False)
 
-                    # print("Current highest evaluation: {}".format(evaluation))
 
                     # if child did not turn out to be taboo move
                     if new_evaluation is not None:
-                        # print("Evaluation new subtree {}: {}".format(i, new_evaluation))
-                        #print('\ntest\n')
+                        # check if new_evaluation is higher, if so, update evaluation and best_move and reset equally_good_moves.
                         if new_evaluation > evaluation:
-                            # TODO check if new evaluation >= evaluation. For all moves that have same evaluation, we should pick the one that results in least child states
-                            # thus pass the one that fills the fullest block
                             equally_good_moves = []
 
                             evaluation = new_evaluation
                             equally_good_moves.append(child.moves[-1])
-                            # print("best move update:", best_move)
+                        # if there are multiple moves with the same evaluation, add them to equally_good_moves    
                         if new_evaluation == evaluation:
                             equally_good_moves.append(child.moves[-1])
-                            # print("equally good moves:", equally_good_moves)
 
-                    i += 1
-                
+                    
+                # if there is only one move in equally_good_moves, play that move
                 if len(equally_good_moves) == 1:
                     self.propose_move(equally_good_moves[0])
+                # if there is not only one move in equally_good_moves, pick the move that fills the fullest block and reduces the possible moves list the most
                 else:
                     highest_block_filling = -1
                     for move in equally_good_moves:
                         if check_box(game_state, move.i, move.j) > highest_block_filling:
                             best_move = move
-                    # TODO propose the move that reduces the possible moves list the most
-                    self.propose_move(best_move)
-                print('\n equal move possibilities minimax: ', len(equally_good_moves), ", depth=", depth, end="\n ")
-                #for move in equally_good_moves:
-                #    print(move.i, move.j, '->', move.value, end=", ")
+                    self.propose_move(best_move) # propose the best move
+                
 
     def minimax(self, game_state: GameState, depth: int, alpha: int, beta: int, is_maximizing_player: bool):
         """ 
-        The minimax function evaluates the game state recursively using the minimax algorithm.
+        The minimax function evaluates the game state recursively using the minimax algorithm. Is called from the minimax_main() function.
 
         @param game_state: The current state of the game.
         @param depth: The maximum depth to which the minimax algorithm should evaluate game states.
+        @param alpha: The alpha value for alpha-beta pruning.
+        @param beta: The beta value for alpha-beta pruning.
         @param is_maximizing_player: A boolean value indicating whether to maximize the returned value (True) or minimize it (False).
             
-        @return: The value of the evaluated game state.
+        @return: The evaluation value of the game state.
         """
+        # if depth is zero or terminal state, evaluate the game state (recursion base case)
         if depth == 0 or self.is_terminal_state(game_state.board):
             return evaluate(game_state)
 
+        # get the child states of the current game state
         children_states = self.get_child_states(game_state, is_maximizing_player)
 
         # if depth not zero and not terminal state, but no child states, then taboo move was played
         if not children_states:
             # do not evaluate taboo move
             return None
-
+        # trivially, for the maximising player
         if is_maximizing_player:
             evaluation = -99999999
             for child_state in children_states:
@@ -254,13 +193,14 @@ class SudokuAI(competitive_sudoku.sudokuai.SudokuAI):
 
                 # if not an evaluation of taboo move
                 if new_evaluation is not None:
-                    evaluation = max(evaluation, new_evaluation)
+                    evaluation = max(evaluation, new_evaluation) # consider max value of evaluation
                     alpha = max(alpha, new_evaluation)
+                    # alpha-beta pruning
                     if beta <= alpha:
-                        # print("\nPrune maximizing\n")
                         break
 
             return evaluation
+        # if minimizing player:
         else:
             evaluation = 99999999
             for child_state in children_states:
@@ -268,10 +208,10 @@ class SudokuAI(competitive_sudoku.sudokuai.SudokuAI):
 
                 # if not an evaluation of taboo move
                 if new_evaluation is not None:
-                    evaluation = min(evaluation, new_evaluation)
+                    evaluation = min(evaluation, new_evaluation) # consider min value of evaluation
                     beta = min(beta, new_evaluation)
+                    # alpha-beta pruning
                     if beta <= alpha:
-                        # print("\nPrune minimizing\n")
                         break
 
             return evaluation
@@ -285,7 +225,7 @@ class SudokuAI(competitive_sudoku.sudokuai.SudokuAI):
         """
         return not np.isin(0, board.squares)
 
-    # TODO: we need to update this function to limit the moveset we check 
+    
     def get_child_states(self, game_state: GameState, is_maximizing_player: bool):
         """ 
         Produces all possible child states from the input game state by playing the available moves.
@@ -296,21 +236,21 @@ class SudokuAI(competitive_sudoku.sudokuai.SudokuAI):
         @return: A list of child states.
         """
         children_states = []
-
+        # for each possible move, create a child state
         for move in self.get_valid_moves(game_state):
-            game_state_copy = copy.deepcopy(game_state)
+            game_state_copy = copy.deepcopy(game_state) # deepcopy gamestate
 
-            game_state_copy.moves.append(move)
+            game_state_copy.moves.append(move) # add move to moves list
             update_scores(game_state_copy, move,
                           is_maximizing_player)  # update scores
             game_state_copy.board.put(
                 move.i, move.j, move.value)  # fill in the move
-            children_states.append(game_state_copy)
+            children_states.append(game_state_copy) # add child state to list of child states
         return children_states
 
     def get_valid_moves(self, game_state: GameState):
         """ 
-        Check valid moves for the current game state.
+        Check valid moves for the current game state. 
 
         @param game_state: The state of the current game.
         @return: List of all valid moves not in Taboo moves.
@@ -319,52 +259,29 @@ class SudokuAI(competitive_sudoku.sudokuai.SudokuAI):
         m = game_state.board.region_height()
         n = game_state.board.region_width()
 
+        # check the filling of the three different region types, so we can check which values are still possible in an efficient way
         row_filling = []
         col_filling = []
         block_filling = []
         for row in range(N):
-            row_filling.append(values_in_row2(game_state, row))
+            row_filling.append(values_in_row(game_state, row))
         for col in range(N):    
-            col_filling.append(values_in_column2(game_state, col))
-        
+            col_filling.append(values_in_column(game_state, col))
         for row_block in range(n):
             for col_block in range(m):
-                block_filling.append(values_in_block2(game_state, row_block*m, col_block*n))
+                block_filling.append(values_in_block(game_state, row_block*m, col_block*n))
         
         possible_moves = []
         empty_squares = get_empty_squares(game_state.board)
+        # for each emtpy square, check the possible values and if the corresponding move is not taboo, add it to the list of possible moves
         for empty_square in empty_squares:
             row = empty_square // N
             col = empty_square % N
-            block = row // m * m + col // n
-            #print(empty_square, ' -> row: ', row, row_filling[row], 'col: ', col, col_filling[col], 'block: ', block, block_filling[block])
+            block = row // m * m + col // n # block index 
             possible_values = np.arange(1, N+1)
             possible_values = np.setdiff1d(possible_values, [row_filling[row], col_filling[col], block_filling[block]])
             for value in possible_values:
                 if TabooMove(row, col, value) not in game_state.taboo_moves:
                     possible_moves.append(Move(row, col, value))
-        #for move in possible_moves:
-        #    print(move.i, move.j, move.value, end=", ")
 
-        """
-        empty_squares = get_empty_squares(game_state.board)
-
-        possible_moves = []
-        for index in empty_squares:
-            row = index // N
-            col = index % N
-            still_possible = np.arange(1, N+1)
-            # Input the values still possible and subtract from it the values already in the row
-            possible_row = values_in_row(game_state.board, still_possible, row)
-            # Input the values still possible in the row to subtract from it the values already in the column
-            possible_col = values_in_column(game_state.board, possible_row, col)
-            # Input the values still possible in the row and column to subtract from it the values already in the block
-            possible_block = values_in_block(game_state.board, possible_col, row, col)
-            # remove 0 from the set of possible values, since we cannot play 0 values
-            values_possible = possible_block[possible_block != 0]
-            for value in values_possible:
-                # if value is not a known taboo move, then it is playable
-                if TabooMove(row, col, value) not in game_state.taboo_moves:
-                    possible_moves.append(Move(row, col, value))
-        """
         return possible_moves
