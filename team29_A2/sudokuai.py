@@ -28,7 +28,7 @@ class SudokuAI(competitive_sudoku.sudokuai.SudokuAI):
 
         # uses early_game strategy first, then minimax if there is time left
         self.early_game(game_state)
-        self.minimax_main(game_state)
+        #self.minimax_main(game_state)
 
 
     
@@ -78,18 +78,37 @@ class SudokuAI(competitive_sudoku.sudokuai.SudokuAI):
             row = empty_square // N
             col = empty_square % N
             block = row // m * m + col // n
-            #print(empty_square, ' -> row: ', row, row_filling[row], 'col: ', col, col_filling[col], 'block: ', block, block_filling[block])
             possible_values = np.arange(1, N+1)
             possible_values = np.setdiff1d(possible_values, [row_filling[row], col_filling[col], block_filling[block]])
-            if len(possible_values) == 1 and TabooMove(row, col, possible_values[0]) not in game_state.taboo_moves:
+            if len_row_filling[row] == N-1 or len_col_filling[col] == N-1 or len_block_filling[block] == N-1:
                 completion_moves.append(Move(row, col, possible_values[0]))
-            if len(possible_values) == 2 and TabooMove(row, col, possible_values[0]) not in game_state.taboo_moves:
-                bad_moves.append(Move(row, col, possible_values[0]))
-                bad_moves.append(Move(row, col, possible_values[1]))
+            if len_row_filling[row] == N-2 or len_col_filling[col] == N-2 or len_block_filling[block] == N-2:
+                for value in possible_values:
+                    if TabooMove(row, col, value) not in game_state.taboo_moves:
+                        bad_moves.append(Move(row, col, value))
             else:
                 for value in possible_values:
                     if TabooMove(row, col, value) not in game_state.taboo_moves:
                         okay_moves.append(Move(row, col, value))
+        # if a move is a completion move AND a bad move, remove it from the bad moves list
+        for move in completion_moves:
+            if move in bad_moves:
+                completion_moves.remove(move)
+        """
+        if len(completion_moves) > 0:
+            print('\ncompletion moves: ', end = ' ')
+            for move in completion_moves:
+                #print(move)
+                print(move.i, move.j, move.value, end= ', ')
+        if len(okay_moves) > 0:
+            print('\nokay moves: ', end = ' ')
+            for move in okay_moves:
+                print(move.i, move.j, move.value, end= ', ')
+        if len(bad_moves) > 0:
+            print('\nbad moves: ', end = ' ')
+            for move in bad_moves:
+                print(move.i, move.j, move.value, end= ', ')
+        """
         
 
         # play a completion_move if it exists, else play an okay_move, else play a bad_move.
@@ -97,19 +116,23 @@ class SudokuAI(competitive_sudoku.sudokuai.SudokuAI):
 
         if len(completion_moves) > 0:
             self.propose_move(completion_moves[0])
+            print('proposed completion move')
             highest_block_filling = -1
             for move in completion_moves:
                 if check_box(game_state, move.i, move.j) > highest_block_filling:
+                    print('highest block filling: ', check_box(game_state, move.i, move.j))
                     best_move = move
             self.propose_move(best_move)
         elif len(okay_moves) > 0:
             self.propose_move(okay_moves[0])
+            print('proposed okay move')
             highest_block_filling = -1
             for move in okay_moves:
                 if check_box(game_state, move.i, move.j) > highest_block_filling:
                     best_move = move
             self.propose_move(best_move)
         else: 
+            print('proposed bad move')
             self.propose_move(bad_moves[0])
        
     def minimax_main(self, game_state: GameState):
