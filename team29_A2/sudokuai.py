@@ -151,7 +151,7 @@ class SudokuAI(competitive_sudoku.sudokuai.SudokuAI):
         # else, use minimax to evaluate each possible move
         else:
             # iterate over all possible depths, starting from 1
-            for depth in range(1, len(get_empty_squares(game_state.board)) + 1):
+            for depth in range(2, len(get_empty_squares(game_state.board)) + 1):
                 evaluation = -99999999
                 alpha = -99999999
                 beta = 99999999
