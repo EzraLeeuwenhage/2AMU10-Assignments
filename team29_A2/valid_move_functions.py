@@ -1,5 +1,72 @@
 from competitive_sudoku.sudoku import SudokuBoard, GameState
 import numpy as np
+from .evaluate_functions import *
+
+def check_filling_early_game(self, game_state: GameState):
+        """ 
+        Checks the filling of the board in early game. 
+         @param game_state: The state of the current game. 
+         @return: Lists of the filling of the rows, columns and blocks, and the length of these arrays inside."""
+
+        N = game_state.board.N
+        m = game_state.board.region_height()
+        n = game_state.board.region_width()
+
+        # create lists of the values in each row, column and block, so we can check which values are still possible in an efficient way
+        row_filling = []
+        len_row_filling = []
+        col_filling = []
+        len_col_filling = []
+        block_filling = []
+        len_block_filling = []
+
+        # for each reagion, check which values are still possible and also include length of the list of possible values
+        for row in range(N):
+            row_filling.append(values_in_row(game_state, row))
+            row_filling_nonzero = row_filling[row][row_filling[row] != 0]
+            len_row_filling.append(len(row_filling_nonzero))
+        for col in range(N):    
+            col_filling.append(values_in_column(game_state, col))
+            col_filling_nonzero = col_filling[col][col_filling[col] != 0]
+            len_col_filling.append(len(col_filling_nonzero))
+        
+        for row_block in range(n):
+            for col_block in range(m):
+                block_filling.append(values_in_block(game_state, row_block*m, col_block*n))
+        for block_index in range(N):
+            block_filling_nonzero = block_filling[block_index][block_filling[block_index] != 0]
+            len_block_filling.append(len(block_filling_nonzero))
+
+        return row_filling, col_filling, block_filling, len_row_filling, len_col_filling, len_block_filling
+       
+
+def choose_move_early_game(self, game_state: GameState, completion_moves, okay_moves, bad_moves):
+    """ 
+        Returns the best move in early game from the completion, okay and bad moves lists.
+        @param game_state: The state of the current game.
+        @param completion_moves: List of completion moves.
+    @param okay_moves: List of okay moves.
+    @param bad_moves: List of bad moves.
+        @return: The best move in early game. """
+    # check if there are completion moves, if so, pick the one that fills the fullest block
+
+    if len(completion_moves) > 0:
+        highest_block_filling = -1
+        for move in completion_moves:
+            if check_box(game_state, move.i, move.j) > highest_block_filling:
+                best_move = move
+        return best_move
+    # check if there are okay moves, if so, pick the one that fills the fullest block
+
+    elif len(okay_moves) > 0:
+        highest_block_filling = -1
+        for move in okay_moves:
+            if check_box(game_state, move.i, move.j) > highest_block_filling:
+                best_move = move
+        return best_move
+    # if there are no completion or okay moves, pick a bad move
+    else: 
+        return bad_moves[0]
 
 def get_empty_squares(board: SudokuBoard):
     """ 

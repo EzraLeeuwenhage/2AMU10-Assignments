@@ -31,7 +31,6 @@ class SudokuAI(competitive_sudoku.sudokuai.SudokuAI):
         self.minimax_main(game_state)
 
 
-    
     def early_game(self, game_state: GameState):
         """ 
         Proposes the best playable move found using early game strategy. Early game strategy tries to play moves that complete regions, and avoids moves that gives the opponent a chance to complete a region. 
@@ -47,30 +46,9 @@ class SudokuAI(competitive_sudoku.sudokuai.SudokuAI):
         bad_moves = []
         okay_moves = []
         
-        # create lists of the values in each row, column and block, so we can check which values are still possible in an efficient way
-        row_filling = []
-        len_row_filling = []
-        col_filling = []
-        len_col_filling = []
-        block_filling = []
-        len_block_filling = []
-
-        # for each reagion, check which values are still possible and also include length of the list of possible values
-        for row in range(N):
-            row_filling.append(values_in_row(game_state, row))
-            row_filling_nonzero = row_filling[row][row_filling[row] != 0]
-            len_row_filling.append(len(row_filling_nonzero))
-        for col in range(N):    
-            col_filling.append(values_in_column(game_state, col))
-            col_filling_nonzero = col_filling[col][col_filling[col] != 0]
-            len_col_filling.append(len(col_filling_nonzero))
+        # check the filling of the board
+        row_filling, col_filling, block_filling, len_row_filling, len_col_filling, len_block_filling = check_filling_early_game(self, game_state)
         
-        for row_block in range(n):
-            for col_block in range(m):
-                block_filling.append(values_in_block(game_state, row_block*m, col_block*n))
-        for block_index in range(N):
-            block_filling_nonzero = block_filling[block_index][block_filling[block_index] != 0]
-            len_block_filling.append(len(block_filling_nonzero))
         
         # for each empty square check the possible values and if the corresponding move is not taboo, add it to the corresponding list (completion, bad or okay)
         empty_squares = get_empty_squares(game_state.board)
@@ -90,58 +68,26 @@ class SudokuAI(competitive_sudoku.sudokuai.SudokuAI):
                 for value in possible_values:
                     if TabooMove(row, col, value) not in game_state.taboo_moves:
                         okay_moves.append(Move(row, col, value))
+
         # if a move is a completion move AND a bad move, remove it from the bad moves list
         for move in completion_moves:
             if move in bad_moves:
                 completion_moves.remove(move)
-        
-        if len(completion_moves) > 0:
-            print('\ncompletion moves: ', end = ' ')
-            for move in completion_moves:
-                #print(move)
-                print(move.i, move.j, move.value, end= ', ')
-        """
-        if len(okay_moves) > 0:
-            print('\nokay moves: ', end = ' ')
-            for move in okay_moves:
-                print(move.i, move.j, move.value, end= ', ')
-        if len(bad_moves) > 0:
-            print('\nbad moves: ', end = ' ')
-            for move in bad_moves:
-                print(move.i, move.j, move.value, end= ', ')
-        """
-        
 
         # play a completion_move if it exists, else play an okay_move, else play a bad_move.
         # if there are multiple moves in the list, pick the one that fills the fullest block to reduce the followup moveset the most
+        best_move_early_game = choose_move_early_game(self, game_state, completion_moves, okay_moves, bad_moves)
+        self.propose_move(best_move_early_game)
 
-        if len(completion_moves) > 0:
-            self.propose_move(completion_moves[0])
-            print('proposed completion move')
-            highest_block_filling = -1
-            for move in completion_moves:
-                print('highest block filling: ', check_box(game_state, move.i, move.j))
-                if check_box(game_state, move.i, move.j) > highest_block_filling:
-                    
-                    best_move = move
-            self.propose_move(best_move)
-        elif len(okay_moves) > 0:
-            self.propose_move(okay_moves[0])
-            print('proposed okay move')
-            highest_block_filling = -1
-            for move in okay_moves:
-                if check_box(game_state, move.i, move.j) > highest_block_filling:
-                    best_move = move
-            self.propose_move(best_move)
-        else: 
-            print('proposed bad move')
-            self.propose_move(bad_moves[0])
-       
+    
+
     def minimax_main(self, game_state: GameState):
         """ 
         Propose the best playable move with minimax agorithm. minimax_main() calls minimax() to evaluate each possible move and then proposes the move that reduces the possible moves list the most.
-          @param game_state: The state of the current game.
-          """
+        @param game_state: The state of the current game.
+        """
+        # create depths to iterate over, depending on whether the game is in late game or not, found by trial-and-error
+        
         # first get the child states of the current game state
         children_states = self.get_child_states(game_state, True)
 
@@ -150,8 +96,11 @@ class SudokuAI(competitive_sudoku.sudokuai.SudokuAI):
             self.propose_move(children_states[0].moves[-1])
         # else, use minimax to evaluate each possible move
         else:
-            # iterate over all possible depths, starting from 1
-            for depth in range(2, len(get_empty_squares(game_state.board)) + 1):
+            # iterate over all possible depths, which is different for mid and late game
+            max_depth = len(get_empty_squares(game_state.board))
+            depth_iterations = [min(3, max_depth), min(5, max_depth), max_depth]
+            for depth in depth_iterations:
+                
                 evaluation = -99999999
                 alpha = -99999999
                 beta = 99999999
@@ -172,7 +121,10 @@ class SudokuAI(competitive_sudoku.sudokuai.SudokuAI):
                             equally_good_moves.append(child.moves[-1])
                         # if there are multiple moves with the same evaluation, add them to equally_good_moves    
                         if new_evaluation == evaluation:
-                            equally_good_moves.append(child.moves[-1])
+                            try:
+                                equally_good_moves.append(child.moves[-1])
+                            except:
+                                print('cannot append move to equally_good_moves')
 
                     
                 # if there is only one move in equally_good_moves, play that move
@@ -185,6 +137,7 @@ class SudokuAI(competitive_sudoku.sudokuai.SudokuAI):
                         if check_box(game_state, move.i, move.j) > highest_block_filling:
                             best_move = move
                     self.propose_move(best_move) # propose the best move
+                print('==============================================================> depth:' , depth)
                 
 
     def minimax(self, game_state: GameState, depth: int, alpha: int, beta: int, is_maximizing_player: bool):
