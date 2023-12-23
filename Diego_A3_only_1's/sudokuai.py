@@ -7,18 +7,17 @@ import competitive_sudoku.sudokuai
 import copy
 import numpy as np
 import time
-from .evaluate_functions import *
-import math
-import random
+from .evaluate_functions_Diego_changed import *
 
+#done
+#node traverse
 
+# to do
 
-# to do Diego
-# update legal moves function
-# update result function
-# Finish entire pipeline
-# remove bugs (I didn't test anything sorry)
-#
+# Finish result
+# Finish rewards
+# add score tracking, (old code?!)
+
 class SudokuAI(competitive_sudoku.sudokuai.SudokuAI):
     """
     Sudoku AI that computes a move for a given sudoku configuration.
@@ -30,75 +29,97 @@ class SudokuAI(competitive_sudoku.sudokuai.SudokuAI):
     def compute_best_move(self, game_state: GameState) -> None:
         """ 
         Proposes the best playable move found using minimax within the timespan given by the game settings."""
-
+        t1= time.time()
+        depth = 12
+        print('the depth is:', depth)
+        one_state = self.only_1s_game_state(game_state)
+        print(one_state)
+        result = self.min_max(one_state, True, depth)
+        t2 = time.time()
+        print('run_time is:', t2-t1)
         
+    
+    def only_1s_game_state(self, game_state):
+        '''changes all values in the sudoku board to ones'''
+        one_state = copy.deepcopy(game_state)
+        N = one_state.board.N
+        for val1 in range(N):
+            for val2 in range(N):
+                #get
+                val3 = one_state.board.get(val1, val2)
+                if val3 != 0:
+                    #overide with 1
+                    one_state.board.put(val1, val2, 1)
 
+        return one_state
 
     
     
+import math
+import random
 
 # Assuming the existence of the Node class and related functions as per the previous pseudo code
 
 def monte_carlo_tree_search(root, max_iterations=1000):
     for _ in range(max_iterations):
-        node = traverse(root) #chatgpt
-        best_child = best_uct(node) #chatgpt
-        simulation_result = rollout(best_child) #chatpgpt
-        backpropagate(best_child, simulation_result) #chatgpt
+        node = traverse(root)
+        best_child = best_uct(node)
+        simulation_result = rollout(best_child)
+        backpropagate(best_child, simulation_result)
 
     return best_child(root)
 
 def traverse(node):
     while not is_terminal(node) and is_fully_expanded(node):
-        legal_moves_list = legal_moves(node.state) # chat
-        for move in legal_moves_list:              # chat
-            child_state = apply_move(node, move)   # chat
-            if node.turn_player:                   # Turn player functionality added by Diego
-                child_node = create_node(child_state, parent=node, move=move, False) #chat
-                node.children.append(child_node) # chat
+        legal_moves_list = legal_moves(node.state)
+        for move in legal_moves_list:
+            child_state = apply_move(node, move)
+            if node.turn_player:
+                child_node = create_node(child_state, parent=node, move=move, turn_player=False)
+                node.children.append(child_node)
             else:
-                child_node = create_node(child_state, parent=node, move=move, True) # chat
-                node.children.append(child_node) #chat
-    return pick_unvisited(node.children) or node #chat
+                child_node = create_node(child_state, parent=node, move=move, turn_player=True)
+                node.children.append(child_node)
+    return pick_unvisited(node.children) or node
 
 
-def rollout(node): #chat
+def rollout(node):
     while not is_terminal(node):
         node = rollout_policy(node)
     return result(node)
 
-def rollout_policy(node): #chat, but turn player Diego
-    legal_moves_list = legal_moves(node.state) #chat
+def rollout_policy(node):
+    legal_moves_list = legal_moves(node.state)
     random_move = random.choice(legal_moves_list)
     next_state = apply_move(node, random_move)  # Implement apply_move based on your game #I should track scores?
-    if node.turn_player: #Diego
+    if node.turn_player:
         return create_node(next_state, parent=node, turn_player=False)
     else:
         return create_node(next_state, parent=node, turn_player=True)
         
-def backpropagate(node, result): #chat
+def backpropagate(node, result):
     while node is not None:
         node = update_stats(node, result)
         node = node.parent #this looks strange
         
 
-def best_uct(node): #chat
+def best_uct(node):
     # Select the child with the highest UCB value
     exploration_constant = 1.414  # Adjust as needed
     children_with_ucb = [(child, ucb_value(node, child, exploration_constant)) for child in node.children]
     best_child = max(children_with_ucb, key=lambda x: x[1])[0]
     return best_child
 
-def ucb_value(parent, child, exploration_constant): #chat
+def ucb_value(parent, child, exploration_constant):
     exploitation_term = child.total_reward / child.visit_count if child.visit_count != 0 else 0
     exploration_term = math.sqrt(math.log(parent.visit_count) / child.visit_count) if child.visit_count != 0 else 0
     return exploitation_term + exploration_constant * exploration_term
 
-def result(node): #to do chat,
+def result(node):
     # Return the result of the simulation for the given node's state
     # should be a 1 for win or a 0 for loss, i think
     # we can do this score-based
-    pass
+    
     # to do
 
 
@@ -113,46 +134,52 @@ def result(node): #to do chat,
     
 class Node:
     def __init__(self, state):
-        self.state = state #chat
-        self.children = [] #chat # List to store child nodes
-        self.parent = None #chat  # Parent node
-        self.visit_count = 0 #chat
-        self.total_reward = 0.0 #chat
-        self.move = None #chat #move played to get to certain node
-        self.scores = scores #Diego
-        self.turn_player = turn_player #Diego
+        self.state = state
+        self.children = []  # List to store child nodes
+        self.parent = None   # Parent node
+        self.visit_count = 0
+        self.total_reward = 0.0
+        self.move = None #move played to get to certain node
+        self.scores = scores
+        self.turn_player = turn_player
 
 def create_node(state, parent=None, move=None, scores=None, turn_player=None):
     node = Node(state)
     node.parent = parent
-    node.move = move #chat
-    node.scores = scores #Diego
-    node.turn_player = turn_player #Diego
+    node.move = move
+    node.scores = scores
+    node.turn_player = turn_player
     return node
 
-def is_fully_expanded(node): #chat
+def is_fully_expanded(node):
     # Check if all possible actions from this state have corresponding child nodes
     return len(node.children) == len(legal_moves(node.state))
 
 def is_terminal(node):
     # Check if the game state is terminal
-    #deze code, is sus
-    empty_indices = [index for index, value in enumerate(board.squares) if value == 0] #chat
+    #denk dat dit klopt
+    empty_indices = [index for index, value in enumerate(board.squares) if value == 0]
 
     if len(empty_indices) != 0:
-        return False #diego
+        return False
     
-    return True #Diego
+    return True
     #return game_over(node.state)
 
 def legal_moves(state):
-    #to do
-    pass
+    legal_moves_list = []
+    N = state.board.N
+    for i in range(N):
+        for j in range(N):
+            value = state.board.get(i, j)
+            if value == 0:
+                legal_moves_list.append([i, j])
+    return legal_moves_list
 
 # Example utility function
-def apply_move(node, move): #Diego
+def apply_move(node, move):
     state_copy = copy.deepcopy(node.state)
-    points = get_points(state_copy, move)
+    points = get_points(state_copy, move) #other py_file
     state_copy.board.put(move[0], move[1], 1)
     if node.turn_player:
         state_copy.scores = [state_copy.scores[0] + points, state_copy.scores[1]]
@@ -161,19 +188,19 @@ def apply_move(node, move): #Diego
     
     return state_copy
 
-def game_over(state): #chat, I think pass
+def game_over(state):
     # Check if the game is over for the given state
     # I can pass this for now, since I don't have a sudoku solver.
     pass
 
-def pick_unvisited(children): #chat
+def pick_unvisited(children):
     # Return an unvisited child node if any, else return None
     for child in children:
         if child.visit_count == 0:
             return child
     return None
 
-def update_stats(node, result): #chat
+def update_stats(node, result):
     # Update the visit count and total reward based on the result of a simulation
     node.visit_count += 1
     node.total_reward += result
