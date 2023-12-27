@@ -11,7 +11,7 @@ def get_points(game_state, move):
         N = game_state.board.N
         m = game_state.board.region_height()
         n = game_state.board.region_width()
-        our_agent = game_state.our_agent
+        #our_agent = game_state.our_agent
         
         rewards = {0:0, 1:1, 2:3, 3:7}
         x = move[0]
