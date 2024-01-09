@@ -39,25 +39,19 @@ class SudokuAI(competitive_sudoku.sudokuai.SudokuAI):
             # initialize N^3 64-bit values for generating hash keys from computed game states
             zobrist_data.zobrist_values = initialize_zobrist_values(game_state.initial_board)
 
-            # print(zobrist_data.zobrist_values)
-
-            # hash_key = hash_key_from_board(zobrist_data.zobrist_values, game_state.board)
-
-            # zobrist_data.zobrist_hash_keys[hash_key] = evaluate(game_state)
-
             self.save(zobrist_data)
             saved_data = zobrist_data
+
+        print(F"Hash keys so far!: \n{saved_data.zobrist_hash_keys}")
         
-        print(f"Saved hash keys: {saved_data.zobrist_hash_keys}\n Saved zobrist values: {saved_data.zobrist_values}")
+        # print(f"Saved hash keys: {saved_data.zobrist_hash_keys}\n Saved zobrist values: {saved_data.zobrist_values}")
 
-        children_states = self.get_child_states(game_state, True, saved_data.zobrist_values)
+        if not hasattr(game_state, 'hash_key'):
+            game_state.hash_key = hash_key_from_board(saved_data.zobrist_values, game_state.board)
 
-        # for child in children_states:
-        #     hash_key = hash_key_from_board(saved_data.zobrist_values, child.board)
-        #     board_evaluation = evaluate(child)
-        #     saved_data.zobrist_hash_keys[hash_key] = board_evaluation
+        print(f"This is the starting hashkey: {game_state.hash_key}")
 
-        # print(saved_data.zobrist_hash_keys)
+        children_states = self.get_child_states(game_state, True, saved_data)
 
         # if only one move is playable, play the only playable move
         if len(children_states) == 1:
@@ -68,13 +62,15 @@ class SudokuAI(competitive_sudoku.sudokuai.SudokuAI):
                 evaluation = -99999999
                 alpha = -99999999
                 beta = 99999999
-                # print("\n------------depth: {}------------\n".format(depth))
+                print("\n------------depth: {}------------\n".format(depth))
 
                 i = 0
                 for child in children_states:
-                    # print("\n Evaluation of child {}:".format(i))
-                    new_evaluation = self.minimax(child, depth - 1, alpha, beta, False)
-
+                    # print(f"\nChild {i}: {child.hash_key}")
+                    # print("Evaluation of child {i}:")
+                    new_evaluation, saved_data = self.minimax(child, depth - 1, alpha, beta, False, saved_data)
+                    
+                    self.save(saved_data)
                     # print("Current highest evaluation: {}".format(evaluation))
 
                     # if child did not turn out to be taboo move
@@ -82,6 +78,7 @@ class SudokuAI(competitive_sudoku.sudokuai.SudokuAI):
                         # print("Evaluation new subtree {}: {}".format(i, new_evaluation))
 
                         if new_evaluation > evaluation:
+                            print(f"better evaluation for child {i}: {new_evaluation}")
                             evaluation = new_evaluation
                             best_move = child.moves[-1]
                             # print("best move update:", best_move)
@@ -99,26 +96,28 @@ class SudokuAI(competitive_sudoku.sudokuai.SudokuAI):
             
         @return: The value of the evaluated game state.
         """
-        print(f"passed gamestate has hash_key attribute: {game_state.hash_key}")
-        # TODO: if state reached previously in calculations (game state is in hash table), return evaluation in hash table
+        # if state reached previously in calculations (game state is in hash table), return evaluation in hash table
         if (game_state.hash_key in saved_data.zobrist_hash_keys):
-            print(f"already encountered {game_state.hash_key}")
-            return saved_data.zobrist_hash_keys[game_state.hash_key]
+            # print(f"already encountered {game_state.hash_key}")
+            return saved_data.zobrist_hash_keys[game_state.hash_key], saved_data
 
         if depth == 0 or self.is_terminal_state(game_state.board):
-            return evaluate(game_state)
+            evaluation = evaluate(game_state)
+            # add the evaluation of the position to the hashmap before returning
+            saved_data.zobrist_hash_keys[game_state.hash_key] = evaluation
+            return evaluation, saved_data
 
-        children_states = self.get_child_states(game_state, is_maximizing_player, saved_data.zobrist_values)
+        children_states = self.get_child_states(game_state, is_maximizing_player, saved_data)
 
         # if depth not zero and not terminal state, but no child states, then taboo move was played
         if not children_states:
             # do not evaluate taboo move
-            return None
+            return None, saved_data
 
         if is_maximizing_player:
             evaluation = -99999999
             for child_state in children_states:
-                new_evaluation = self.minimax(child_state, depth - 1, alpha, beta, False)
+                new_evaluation, saved_data = self.minimax(child_state, depth - 1, alpha, beta, False, saved_data)
 
                 # if not an evaluation of taboo move
                 if new_evaluation is not None:
@@ -128,11 +127,11 @@ class SudokuAI(competitive_sudoku.sudokuai.SudokuAI):
                         # print("\nPrune maximizing\n")
                         break
 
-            return evaluation
+            return evaluation, saved_data
         else:
             evaluation = 99999999
             for child_state in children_states:
-                new_evaluation = self.minimax(child_state, depth - 1, alpha, beta, True)
+                new_evaluation = self.minimax(child_state, depth - 1, alpha, beta, True, saved_data)
 
                 # if not an evaluation of taboo move
                 if new_evaluation is not None:
@@ -142,7 +141,7 @@ class SudokuAI(competitive_sudoku.sudokuai.SudokuAI):
                         # print("\nPrune minimizing\n")
                         break
 
-            return evaluation
+            return evaluation, saved_data
 
     def is_terminal_state(self, board: SudokuBoard):
         """ 
@@ -153,7 +152,7 @@ class SudokuAI(competitive_sudoku.sudokuai.SudokuAI):
         """
         return not np.isin(0, board.squares)
 
-    def get_child_states(self, game_state: GameState, is_maximizing_player: bool, zobrist_values):
+    def get_child_states(self, game_state: GameState, is_maximizing_player: bool, saved_data):
         """ 
         Produces all possible child states from the input game state by playing the available moves.
 
@@ -170,7 +169,10 @@ class SudokuAI(competitive_sudoku.sudokuai.SudokuAI):
             game_state_copy.moves.append(move) # add move to moves list
             update_scores(game_state_copy, move, is_maximizing_player)  # update scores
             game_state_copy.board.put(move.i, move.j, move.value)  # fill in the move
-            game_state_copy.hash_key = hash_key_from_board(zobrist_values, game_state_copy.board)
+
+            # create a hash_key value attributed to the game state
+            game_state_copy.hash_key = update_hash_key_on_move(saved_data.zobrist_values, game_state_copy.board, game_state.hash_key, move)
+
             print(f"successfully added hash_key: {game_state_copy.hash_key}")
             children_states.append(game_state_copy) # add child state to list of child states
         return children_states

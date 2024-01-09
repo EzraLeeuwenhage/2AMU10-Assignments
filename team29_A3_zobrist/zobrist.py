@@ -52,7 +52,6 @@ def hash_key_from_board(zobrist_values, board: SudokuBoard):
 
     # for each filled square in the board XOR the hash key with the zobrist value corresponding to that (square, value) tuple
     for index, square_value in enumerate(board.squares):
-        print(index, square_value)
         # only update the hash key for non-empty squares
         if square_value != SudokuBoard.empty:
             # the new hash key value becomes the old value XOR'ed with the corresponding zobrist value
