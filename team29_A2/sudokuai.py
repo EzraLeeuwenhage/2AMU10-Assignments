@@ -99,7 +99,7 @@ class SudokuAI(competitive_sudoku.sudokuai.SudokuAI):
             # iterate over all possible depths, which is different for mid and late game
             max_depth = len(get_empty_squares(game_state.board))
             depth_iterations = [min(3, max_depth), min(5, max_depth), max_depth]
-            for depth in depth_iterations:
+            for depth in depth_iterations:  
                 
                 evaluation = -99999999
                 alpha = -99999999
